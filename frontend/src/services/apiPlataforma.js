@@ -1,8 +1,19 @@
 import axios from 'axios'
 
-// El panel del dueño vive en el schema `public` → host principal
-// (en dev: localhost:8000, NO 127.0.0.1 que es el tenant demo).
-const BASE = import.meta.env.VITE_PLATAFORMA_API_URL || 'http://localhost:8000/api/v1'
+// El panel del dueño vive en el schema `public` → host principal.
+// - Prod: mismo origen del navegador (yachayqr.com → yachayqr.com/api/v1).
+// - Dev:  localhost:8000 (NO 127.0.0.1, que resuelve al tenant demo).
+// VITE_PLATAFORMA_API_URL queda como override explícito.
+function resolvePlataformaBase() {
+  const override = import.meta.env.VITE_PLATAFORMA_API_URL
+  if (override) return override
+  if (!import.meta.env.DEV) {
+    return `${window.location.origin}/api/v1`
+  }
+  return 'http://localhost:8000/api/v1'
+}
+
+const BASE = resolvePlataformaBase()
 
 const apiPlataforma = axios.create({ baseURL: BASE })
 
