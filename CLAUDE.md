@@ -52,6 +52,58 @@ with tenant_context(demo):
 "
 ```
 
+## Producción (yachayqr.com)
+
+Servidor: **DigitalOcean** (`64.23.175.14`), Ubuntu, código en `/var/www/yachayqr/`.
+
+### Dominios y tenants registrados en prod (BD)
+| Dominio | Schema | Notas |
+|---|---|---|
+| `yachayqr.com` | `public` | Panel del dueño. Superuser: `sicoa`. |
+| `demo.yachayqr.com` | `demo` | Colegio de prueba. |
+| `iestacoasa.yachayqr.com` | `iestacoasa` | Primer colegio real (IESTA-COASA). Director inicial. |
+
+- DNS wildcard: `*.yachayqr.com` → `64.23.175.14`.
+- SSL: Let's Encrypt wildcard cubre `*.yachayqr.com` + `yachayqr.com` (`/etc/letsencrypt/live/yachayqr.com/`).
+- El `Cliente(schema_name='public')` y el `Dominio('yachayqr.com')` se crearon manualmente (django-tenants no los crea solo). Si se reconstruye la BD, **hay que recrearlos** además de los tenants normales.
+
+### Servicios (systemd) y comandos comunes
+| Servicio | Qué hace | Reiniciar |
+|---|---|---|
+| `yachayqr.service` | Gunicorn (Django) en `127.0.0.1:8000`, 3 workers | `systemctl restart yachayqr` |
+| `yachayqr-celery.service` | Worker Celery (tareas async) | `systemctl restart yachayqr-celery` |
+| `nginx` | Proxy + SSL + sirve `frontend/dist/` | `systemctl reload nginx` |
+
+Nginx config: `/etc/nginx/sites-enabled/yachayqr`. Sirve `/api/` → `proxy_pass http://127.0.0.1:8000`; resto → SPA del `frontend/dist/`. El header `Host` se pasa intacto, por eso django-tenants resuelve el tenant correcto.
+
+### Variables del `.env` de prod (`/var/www/yachayqr/backend/.env`)
+```
+DEBUG=False
+ALLOWED_HOSTS=.yachayqr.com,yachayqr.com,64.23.175.14
+TENANT_DOMAIN_SUFFIX=yachayqr.com               # sufijo de tenants nuevos (ver sección abajo)
+TENANT_LOGIN_URL_TEMPLATE=https://{sub}.yachayqr.com/login
+DB_NAME=yachayqr  /  DB_USER=yachayqr  /  DB_HOST=localhost
+REDIS_URL=redis://localhost:6379/0
+TURNSTILE_SECRET=                                # vacío = omite Turnstile
+```
+El `.env` está en `.gitignore` — no se sube a GitHub. El de dev (`F:/SaaS/backend/.env`) vive solo en la laptop.
+
+### Workflow de despliegue (laptop → prod)
+1. **En laptop** (`F:/SaaS/`): commitear + `git push origin main`
+2. **En servidor** (`/var/www/yachayqr/`):
+   ```bash
+   git pull origin main
+   # Si tocaste backend Python:
+   systemctl restart yachayqr yachayqr-celery
+   # Si añadiste migraciones:
+   cd backend && source venv/bin/activate && python manage.py migrate_schemas
+   # Si tocaste frontend:
+   cd frontend && npm run build      # nginx ya sirve el dist/
+   ```
+
+### SSH deploy key (servidor ↔ GitHub)
+El servidor pushea/pullea por SSH con la deploy key `~/.ssh/yachayqr_deploy` (configurada en `~/.ssh/config` para `github.com`). La pública está registrada en GitHub → repo `oliverturpo/multicolegio` → Settings → Deploy keys (con write access). Remote: `git@github.com:oliverturpo/multicolegio.git`.
+
 ## Arquitectura multi-tenant
 - Registro de colegio → crea `Cliente` (schema propio) + `Dominio` + Director inicial (en su schema)
 - `SHARED_APPS`: tenants, contenttypes, **auth**, admin, sessions, simplejwt, token_blacklist (schema `public` = superusuario/plataforma)
@@ -72,6 +124,17 @@ demo = Cliente(schema_name='demo', nombre='Colegio Demo YachayQR', email_contact
 Dominio.objects.create(domain='demo.localhost', tenant=demo, is_primary=True)
 Dominio.objects.create(domain='127.0.0.1', tenant=demo, is_primary=False)
 # luego correr el snippet 'Recrear si se borra la BD' de abajo (crea los usuarios en demo)
+```
+
+### Dominio de tenant configurable — HECHA (2026-05-20)
+Antes el alta de colegio en `tenants/views.py` hardcodeaba `<subdominio>.localhost`, lo que rompía prod (django-tenants no resolvía el host real). Ahora compone el dominio con `settings.TENANT_DOMAIN_SUFFIX`:
+- **Dev** (variable ausente en `.env`): default `'localhost'` → crea `mgcj.localhost` (igual que antes)
+- **Prod** (`TENANT_DOMAIN_SUFFIX=yachayqr.com`): crea `mgcj.yachayqr.com` automáticamente
+
+Cero impacto en flujo de desarrollo. Para colegios viejos creados antes del fix con dominio `.localhost` en prod, hay que renombrar en BD:
+```python
+from tenants.models import Dominio
+d = Dominio.objects.get(domain='<sub>.localhost'); d.domain = '<sub>.yachayqr.com'; d.save()
 ```
 
 ## Modelos clave
@@ -148,3 +211,19 @@ El horario es modificable por el Director desde `/director/dashboard` (próximam
 - [x] Cloudflare Turnstile: validado en backend (`config/turnstile.py`). Falta poner `TURNSTILE_SECRET` en `.env` para activarlo en prod (en dev se omite).
 - [x] Carnet PDF: implementado en `colegios/carnet.py` (foto + barcode Code128 + QR, 4 por hoja). Falta solo el logo del colegio.
 - [ ] WhatsApp API: la tarea `asistencia/tasks.py` ya es tenant-aware; falta el envío real (Twilio / Meta Cloud API) donde está el `print(...)`. Requiere worker Celery corriendo.
+
+## Inconsistencias conocidas / a corregir
+- **`config/settings.py:110`** — `CORS_ALLOWED_ORIGIN_REGEXES` apunta a `\.yachayqr\.pe$` pero el dominio real es `.com`. Hoy no rompe porque frontend y API comparten origen (vía nginx), pero es código stale. Cambiar `.pe` → `.com`.
+- **`config/settings.py:148`** — comentario stale dice `colegio.yachayqr.pe` en la doc de `TENANT_LOGIN_URL_TEMPLATE`. Cambiar a `.com`.
+- **`tenants/management/commands/crear_tenant_publico.py:21`** — el comando crea `domain='localhost'` hardcodeado. Para prod habría que parametrizarlo, o simplemente no usar este comando en prod (ya está hecho a mano).
+- Migración pendiente: aplicar `migrate_schemas` después del fix de `TENANT_DOMAIN_SUFFIX` no es necesario (no toca modelos), pero si añades nuevos campos al `Dominio`, sí.
+
+## Historial de fixes importantes
+- **2026-05-17** — Migración a usuarios por-tenant (ver sección de Arquitectura).
+- **2026-05-20** — Setup inicial de prod en yachayqr.com:
+  1. Creado `Cliente(public)` + `Dominio('yachayqr.com')` en BD (no existían → 404 en `/api/v1/plataforma/`).
+  2. Creado superuser `sicoa` en schema `public`.
+  3. Corregido dominio del colegio `iestacoasa` (`iestacoasa.localhost` → `iestacoasa.yachayqr.com`).
+  4. Fix del hardcode `.localhost` en `tenants/views.py` → ahora usa `TENANT_DOMAIN_SUFFIX`.
+  5. Configurada SSH deploy key del servidor a GitHub.
+  6. Commits `de9bf76` + `3519007` en `origin/main`.
