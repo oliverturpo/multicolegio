@@ -161,6 +161,11 @@ TENANT_LOGIN_URL_TEMPLATE = config(
 # Si TURNSTILE_SECRET está vacío (dev), la validación se omite.
 TURNSTILE_SECRET = config('TURNSTILE_SECRET', default='')
 
+# --- WhatsApp (Meta Cloud API) ---
+# Si están vacíos (dev), config/whatsapp.py solo imprime en logs.
+WHATSAPP_TOKEN    = config('WHATSAPP_TOKEN',    default='')
+WHATSAPP_PHONE_ID = config('WHATSAPP_PHONE_ID', default='')
+
 # --- Password validation ---
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

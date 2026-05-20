@@ -13,8 +13,11 @@ def enviar_whatsapp_sesion(schema_name, sesion_id):
     todas las consultas irían al schema `public` (donde estas tablas no
     existen) y la tarea fallaría.
     """
+    from config.whatsapp import enviar_template
+
     with schema_context(schema_name):
         from .models import SesionDiaria, Asistencia
+        from tenants.models import Cliente
 
         try:
             sesion = SesionDiaria.objects.get(id=sesion_id)
@@ -24,33 +27,50 @@ def enviar_whatsapp_sesion(schema_name, sesion_id):
         if sesion.whatsapp_enviados:
             return
 
+        # Nombre del colegio para incluirlo en el template
+        try:
+            nombre_colegio = Cliente.objects.get(schema_name=schema_name).nombre
+        except Cliente.DoesNotExist:
+            nombre_colegio = 'el colegio'
+
         asistencias = Asistencia.objects.filter(
             sesion=sesion,
             estado__in=[Asistencia.Estado.TARDANZA, Asistencia.Estado.AUSENTE],
             whatsapp_enviado=False,
         ).select_related('alumno__apoderado')
 
-        mensajes = {
-            'TARDANZA': '{nombre} llego tarde a clases hoy {fecha}.',
-            'AUSENTE':  '{nombre} no asistio a clases hoy {fecha}. Comuniquese con el auxiliar.',
-        }
-
+        # Template → (nombre_template, [param1, param2, param3])
+        # Parámetros según los templates aprobados en Meta:
+        #   yachayqr_ausente:  {{1}}=alumno  {{2}}=fecha  {{3}}=colegio
+        #   yachayqr_tardanza: {{1}}=alumno  {{2}}=fecha  {{3}}=hora
         ids_enviados = []
         for asistencia in asistencias:
             alumno    = asistencia.alumno
             apoderado = alumno.apoderado
-            telefono  = apoderado.telefono_whatsapp
-            mensaje   = mensajes[asistencia.estado].format(
-                nombre=alumno.nombre_completo,
-                fecha=asistencia.fecha.strftime('%d/%m/%Y'),
-            )
+            if not apoderado or not apoderado.telefono_whatsapp:
+                continue
 
-            # TODO: Integrar API de WhatsApp (Twilio / Meta Cloud API)
-            # _enviar_whatsapp(telefono, mensaje)
-            print(f'[WhatsApp][{schema_name}] → {telefono}: {mensaje}')
+            fecha_str = asistencia.fecha.strftime('%d/%m/%Y')
 
-            ids_enviados.append(asistencia.id)
+            if asistencia.estado == Asistencia.Estado.AUSENTE:
+                ok = enviar_template(
+                    apoderado.telefono_whatsapp,
+                    'yachayqr_ausente',
+                    [alumno.nombre_completo, fecha_str, nombre_colegio],
+                )
+            else:  # TARDANZA
+                hora_str = asistencia.hora_registro.strftime('%H:%M') if asistencia.hora_registro else '—'
+                ok = enviar_template(
+                    apoderado.telefono_whatsapp,
+                    'yachayqr_tardanza',
+                    [alumno.nombre_completo, fecha_str, hora_str],
+                )
 
-        Asistencia.objects.filter(id__in=ids_enviados).update(whatsapp_enviado=True)
+            if ok:
+                ids_enviados.append(asistencia.id)
+
+        if ids_enviados:
+            Asistencia.objects.filter(id__in=ids_enviados).update(whatsapp_enviado=True)
+
         sesion.whatsapp_enviados = True
         sesion.save(update_fields=['whatsapp_enviados'])

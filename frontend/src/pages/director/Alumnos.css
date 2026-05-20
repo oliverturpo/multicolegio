@@ -4,6 +4,8 @@
   flex-direction: column;
   gap: 20px;
   width: 100%;
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ── Cabecera ────────────────────────────────────────────────── */
@@ -14,8 +16,9 @@
   gap: 12px;
 }
 .alu-title {
-  font-size: 24px;
-  font-weight: 800;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 28px;
+  font-weight: 600;
   color: var(--text-dark);
   margin: 0 0 4px;
   letter-spacing: -0.02em;
