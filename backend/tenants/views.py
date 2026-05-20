@@ -50,7 +50,7 @@ class ColegioViewSet(viewsets.ModelViewSet):
         )
         cliente.save()
         Dominio.objects.create(
-            domain=f"{d['subdominio']}.localhost",
+            domain=f"{d['subdominio']}.{settings.TENANT_DOMAIN_SUFFIX}",
             tenant=cliente,
             is_primary=True,
         )

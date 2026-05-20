@@ -143,9 +143,15 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
+# --- Sufijo del dominio de cada colegio ---
+# Se concatena al subdominio elegido al crear un colegio.
+# Dev: 'localhost' → mgcj.localhost
+# Prod: TENANT_DOMAIN_SUFFIX=yachayqr.com → mgcj.yachayqr.com
+TENANT_DOMAIN_SUFFIX = config('TENANT_DOMAIN_SUFFIX', default='localhost')
+
 # --- URL de acceso del colegio (lo que se le muestra al Director) ---
 # Apunta al FRONTEND (React), NO al backend :8000. {sub} = subdominio.
-# Prod: TENANT_LOGIN_URL_TEMPLATE=https://{sub}.yachayqr.pe/login
+# Prod: TENANT_LOGIN_URL_TEMPLATE=https://{sub}.yachayqr.com/login
 TENANT_LOGIN_URL_TEMPLATE = config(
     'TENANT_LOGIN_URL_TEMPLATE',
     default='http://{sub}.localhost:5173/login',
