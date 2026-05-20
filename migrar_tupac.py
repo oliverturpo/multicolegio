@@ -34,8 +34,8 @@ from datetime import date, datetime, time
 from pathlib import Path
 
 # ─── Configuracion ─────────────────────────────────────────────────────
-# Raiz del proyecto (un nivel arriba de backend/). Funciona en laptop y servidor.
-PROJECT_ROOT   = Path(__file__).resolve().parent.parent
+# Este script vive en la raiz del proyecto (junto a backend/, frontend/).
+PROJECT_ROOT   = Path(__file__).resolve().parent
 SQLITE         = PROJECT_ROOT / 'db_2026-05-20.sqlite3'
 # Carpeta de fotos opcional: si no existe, asume que las fotos ya estan en
 # backend/media/alumnos/fotos/ del destino (caso servidor) y solo asocia el
@@ -49,7 +49,9 @@ SEED           = 42   # nombres/apellidos aleatorios reproducibles
 random.seed(SEED)
 
 # ─── Bootstrap Django ──────────────────────────────────────────────────
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Django vive en backend/ — agregamos esa ruta al sys.path para que
+# `config.settings` (que esta en backend/config/) sea importable.
+sys.path.insert(0, str(PROJECT_ROOT / 'backend'))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 import django
 django.setup()
