@@ -1,0 +1,331 @@
+/* ── Base ───────────────────────────────────────────────────── */
+.login-bg {
+  height: 100vh;
+  display: flex;
+}
+
+.login-card {
+  width: 100%;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+
+/* ══ PANEL IZQUIERDO ════════════════════════════════════════════ */
+.brand-panel {
+  position: relative;
+  background: linear-gradient(160deg, #1e3a5f 0%, #0f2a4c 100%);
+  color: #fff;
+  padding: 64px 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.sol-deco {
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  opacity: 0.2;
+  width: 380px;
+  height: 380px;
+}
+
+/* Logo */
+.brand-logo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-logo-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(251, 191, 36, 0.45);
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.brand-accent { color: #fbbf24; }
+
+.brand-tagline {
+  font-size: 13px;
+  opacity: 0.65;
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+/* Texto central */
+.brand-copy { position: relative; }
+
+.brand-label {
+  font-size: 13px;
+  color: #fbbf24;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.brand-headline {
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0 0 20px;
+  letter-spacing: -0.03em;
+}
+
+.brand-desc {
+  font-size: 17px;
+  opacity: 0.7;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 360px;
+}
+
+/* ══ PANEL DERECHO ══════════════════════════════════════════════ */
+.form-panel {
+  padding: 0 10%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.form-header { margin-bottom: 36px; }
+
+.form-title {
+  font-size: 42px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 10px;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.form-subtitle {
+  font-size: 17px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Formulario ─────────────────────────────────────────────── */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: 0.01em;
+}
+
+/* Input con ícono */
+.input-wrap { position: relative; }
+
+.input-wrap input {
+  width: 100%;
+  padding: 15px 16px 15px 48px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 16px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+}
+
+.input-wrap input:focus {
+  border-color: #1e3a5f;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(30, 58, 95, 0.08);
+}
+
+.input-wrap input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.icon-left {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+  display: flex;
+}
+
+.icon-right {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.icon-right:hover { color: #475569; }
+
+/* Turnstile */
+.turnstile-wrap { display: flex; justify-content: center; }
+
+/* Error */
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+/* Botón */
+.login-btn {
+  margin-top: 6px;
+  padding: 16px;
+  background: #1e3a5f;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  box-shadow: 0 4px 16px rgba(30, 58, 95, 0.25);
+  min-height: 54px;
+  letter-spacing: -0.01em;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: #0f2a4c;
+  box-shadow: 0 10px 28px rgba(30, 58, 95, 0.35);
+  transform: translateY(-1px);
+}
+
+.login-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+/* Spinner */
+.btn-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Footer */
+.form-footer {
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+/* ── Loading screen ─────────────────────────────────────────── */
+.loading-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+/* Pantalla grande — dar más aire */
+@media (min-width: 1400px) {
+  .brand-panel   { padding: 80px 96px; }
+  .brand-headline { font-size: 62px; }
+  .brand-desc    { font-size: 18px; }
+  .brand-name    { font-size: 32px; }
+  .form-title    { font-size: 52px; }
+  .form-subtitle { font-size: 19px; }
+  .form-panel    { padding: 0 12%; }
+}
+
+/* Tablet landscape */
+@media (max-width: 1024px) {
+  .brand-panel   { padding: 48px 48px; }
+  .brand-headline { font-size: 40px; }
+  .brand-desc    { font-size: 15px; }
+  .form-panel    { padding: 0 8%; }
+  .form-title    { font-size: 34px; }
+  .form-subtitle { font-size: 15px; }
+}
+
+/* Tablet portrait — columna única */
+@media (max-width: 700px) {
+  .login-card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    height: 100dvh;
+  }
+
+  .brand-panel {
+    padding: 22px 28px;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    height: auto;
+  }
+
+  .brand-copy { display: none; }
+  .sol-deco   { display: none; }
+
+  .brand-logo-icon { width: 44px; height: 44px; }
+  .brand-name      { font-size: 22px; }
+  .brand-tagline   { font-size: 12px; }
+
+  .form-panel {
+    padding: 40px 28px 36px;
+    justify-content: flex-start;
+  }
+
+  .form-title    { font-size: 30px; }
+  .form-subtitle { font-size: 15px; }
+
+  .input-wrap input { font-size: 16px; }
+  .login-btn        { font-size: 16px; min-height: 50px; }
+}

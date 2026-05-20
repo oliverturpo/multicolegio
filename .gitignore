@@ -1,0 +1,107 @@
+# ===== Python / Django =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.manifest
+*.spec
+
+# Virtualenv
+venv/
+env/
+ENV/
+.venv/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+backend/media/
+backend/staticfiles/
+
+# Migraciones locales generadas (mantener las del repo, ignorar pyc)
+**/migrations/__pycache__/
+
+# ===== Secretos / Variables de entorno =====
+.env
+.env.*
+!.env.example
+!.env.production.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# ===== Node / Vite / React =====
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# ===== Editores e IDE =====
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ===== Sistema operativo =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Logs =====
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ===== Herramientas de IA / Claude Code =====
+# CLAUDE.md SÍ se commitea (es documentación del proyecto, sin secretos)
+.claude/
+.agents/
+skills-lock.json
+*.skill.lock
+
+# ===== Documentación / referencias internas que NO van al repo =====
+_ref_lectora/
+
+# ===== Archivos de coverage / tests =====
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+htmlcov/
+.tox/
+
+# ===== Misc =====
+*.bak
+*.tmp
+*.swp
+*~
