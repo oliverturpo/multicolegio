@@ -10,6 +10,7 @@ from usuarios.views import YachayQRTokenView
 # es parte del panel protegido del dueño en /api/v1/plataforma/.
 public_urlpatterns = [
     path('admin/',               admin.site.urls),
+    path('api/v1/whatsapp/webhook/', __import__('asistencia.webhook_views', fromlist=['whatsapp_webhook']).whatsapp_webhook),
     path('api/v1/plataforma/',   include('tenants.urls')),     # login dueño + colegios
     path('api/v1/auth/refresh/', TokenRefreshView.as_view(),   name='token_refresh'),
     path('api/v1/auth/verify/',  TokenVerifyView.as_view(),    name='token_verify'),

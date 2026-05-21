@@ -193,3 +193,4 @@ CELERY_RESULT_BACKEND     = config('REDIS_URL', default='redis://localhost:6379/
 CELERY_TIMEZONE           = 'America/Lima'
 CELERY_TASK_TRACK_STARTED = True
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+WHATSAPP_VERIFY_TOKEN = config('WHATSAPP_VERIFY_TOKEN', default='')
