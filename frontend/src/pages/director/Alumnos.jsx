@@ -139,9 +139,9 @@ export default function DirectorAlumnos() {
         grado_seccion_id: data.grado_seccion?.id ?? '',
       })
       if (data.apoderado) {
-        const wsp = data.apoderado.telefono_whatsapp ?? ''
+        const digits = (data.apoderado.telefono_whatsapp ?? '').replace(/\D/g, '')
         setApoEncontrado(data.apoderado)
-        setFApo({ ...data.apoderado, telefono_whatsapp: wsp.startsWith('+51') ? wsp.slice(3) : wsp })
+        setFApo({ ...data.apoderado, telefono_whatsapp: digits.startsWith('51') ? digits.slice(2) : digits })
         setApoModo('encontrado')
         setApoDniBusca(data.apoderado.dni)
       }
@@ -166,8 +166,8 @@ export default function DirectorAlumnos() {
       const enc   = lista.find(a => a.dni === apoDniBusca)
       if (enc) {
         setApoEncontrado(enc)
-        const wsp = enc.telefono_whatsapp ?? ''
-        setFApo({ ...enc, telefono_whatsapp: wsp.startsWith('+51') ? wsp.slice(3) : wsp })
+        const digits = (enc.telefono_whatsapp ?? '').replace(/\D/g, '')
+        setFApo({ ...enc, telefono_whatsapp: digits.startsWith('51') ? digits.slice(2) : digits })
         setApoModo('encontrado')
       } else {
         setApoEncontrado(null)
@@ -232,11 +232,11 @@ export default function DirectorAlumnos() {
 
       // 2. Apoderado
       let apoId = apoEncontrado?.id
-      const wspFinal = '+51' + fApo.telefono_whatsapp.replace(/\D/g, '')
+      const wspFinal = '51' + fApo.telefono_whatsapp.replace(/\D/g, '')
       if (apoModo === 'nuevo') {
         const { data: apo } = await api.post('/colegios/apoderados/', { ...fApo, telefono_whatsapp: wspFinal })
         apoId = apo.id
-      } else if (apoModo === 'encontrado' && wspFinal !== apoEncontrado.telefono_whatsapp) {
+      } else if (apoModo === 'encontrado' && wspFinal !== (apoEncontrado.telefono_whatsapp ?? '').replace(/\D/g, '')) {
         await api.patch(`/colegios/apoderados/${apoId}/`, { telefono_whatsapp: wspFinal })
       }
 

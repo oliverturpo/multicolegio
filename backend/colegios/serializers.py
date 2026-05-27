@@ -13,6 +13,18 @@ class ApoderadoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'creado_en']
 
+    def validate_telefono_whatsapp(self, value):
+        numero = value.strip().replace(' ', '').replace('-', '').lstrip('+')
+        if not numero.isdigit():
+            raise serializers.ValidationError('El número solo debe contener dígitos.')
+        if len(numero) == 9:
+            numero = '51' + numero
+        if not (numero.startswith('51') and len(numero) == 11):
+            raise serializers.ValidationError(
+                'Ingresa un número peruano válido (9 dígitos, ej: 987654321).'
+            )
+        return numero
+
 
 class GradoSeccionSerializer(serializers.ModelSerializer):
     total_alumnos = serializers.SerializerMethodField()
