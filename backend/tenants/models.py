@@ -9,6 +9,10 @@ class Cliente(TenantMixin):
     telefono = models.CharField(max_length=20, blank=True)
     logo = models.ImageField(upload_to='logos/', blank=True, null=True)
     activo = models.BooleanField(default=True)
+    whatsapp_activo = models.BooleanField(
+        default=False,
+        help_text='Plan Premium: habilita el envío de notificaciones por WhatsApp.',
+    )
     creado_en = models.DateTimeField(auto_now_add=True)
 
     auto_create_schema = True

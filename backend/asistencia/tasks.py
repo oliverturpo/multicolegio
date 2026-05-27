@@ -27,11 +27,15 @@ def enviar_whatsapp_sesion(schema_name, sesion_id):
         if sesion.whatsapp_enviados:
             return
 
-        # Nombre del colegio para incluirlo en el template
+        # Plan WhatsApp: solo los colegios con whatsapp_activo=True reciben
+        # notificaciones. Si no lo tienen, se omite el envío silenciosamente.
         try:
-            nombre_colegio = Cliente.objects.get(schema_name=schema_name).nombre
+            colegio = Cliente.objects.get(schema_name=schema_name)
         except Cliente.DoesNotExist:
-            nombre_colegio = 'el colegio'
+            return
+        if not colegio.whatsapp_activo:
+            return
+        nombre_colegio = colegio.nombre
 
         asistencias = Asistencia.objects.filter(
             sesion=sesion,

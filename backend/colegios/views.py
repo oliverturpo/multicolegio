@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.http import HttpResponse
 from django.db import connection
-from django.db.models import Q
+from django.db.models import Q, Value, CharField
+from django.db.models.functions import Concat
 from asistencia.permissions import GestionAlumnos
 from .models import Apoderado, GradoSeccion, Alumno
 from .serializers import ApoderadoSerializer, GradoSeccionSerializer, AlumnoSerializer, AlumnoListSerializer
@@ -49,22 +50,41 @@ class AlumnoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Alumno.objects.select_related('grado_seccion', 'apoderado').filter(estado='ACTIVO')
-        grado   = self.request.query_params.get('grado')
-        seccion = self.request.query_params.get('seccion')
-        buscar  = self.request.query_params.get('buscar')
+        grado         = self.request.query_params.get('grado')
+        seccion       = self.request.query_params.get('seccion')
+        grado_seccion = self.request.query_params.get('grado_seccion')
+        buscar        = (self.request.query_params.get('buscar') or '').strip()
 
-        if grado:
+        # grado_seccion = id exacto de una sección (1° A ≠ 1° B). Tiene
+        # prioridad sobre `grado`, que filtra el grado completo.
+        if grado_seccion:
+            qs = qs.filter(grado_seccion_id=grado_seccion)
+        elif grado:
             qs = qs.filter(grado_seccion__grado=grado)
         if seccion:
             qs = qs.filter(grado_seccion__nombre_seccion__icontains=seccion)
+
         if buscar:
-            qs = qs.filter(
-                Q(dni__icontains=buscar) |
-                Q(nombres__icontains=buscar) |
-                Q(apellido_paterno__icontains=buscar) |
-                Q(apellido_materno__icontains=buscar) |
-                Q(codigo_barras__icontains=buscar)
+            # nombre_completo es una property (no columna): se reconstruye
+            # con Concat para poder filtrarla en la BD. Se busca cada
+            # palabra por separado, así "Accha Turpo" (apellidos separados
+            # por espacio, en cualquier orden) encuentra al alumno.
+            qs = qs.annotate(
+                _nombre_completo=Concat(
+                    'nombres', Value(' '),
+                    'apellido_paterno', Value(' '),
+                    'apellido_materno',
+                    output_field=CharField(),
+                )
             )
+            condicion = Q()
+            for palabra in buscar.split():
+                condicion &= (
+                    Q(_nombre_completo__icontains=palabra) |
+                    Q(dni__icontains=palabra) |
+                    Q(codigo_barras__icontains=palabra)
+                )
+            qs = qs.filter(condicion)
         return qs
 
     @action(detail=False, methods=['get'], url_path='por-codigo/(?P<codigo>[^/.]+)')

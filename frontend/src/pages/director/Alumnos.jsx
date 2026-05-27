@@ -43,14 +43,6 @@ function Avatar({ nombre, foto, size = 36 }) {
   )
 }
 
-function BadgeEstado({ estado }) {
-  const cfg = {
-    ACTIVO:   { label: 'Activo',   color: '#16a34a', bg: '#dcfce7' },
-    RETIRADO: { label: 'Retirado', color: '#dc2626', bg: '#fee2e2' },
-  }[estado] ?? { label: estado, color: '#64748b', bg: '#f1f5f9' }
-  return <span className="alu-badge" style={{ color: cfg.color, background: cfg.bg }}>{cfg.label}</span>
-}
-
 function Spinner({ size = 20, color = 'var(--navy)' }) {
   return <div className="alu-spinner" style={{ width: size, height: size, borderTopColor: color }} />
 }
@@ -93,8 +85,8 @@ export default function DirectorAlumnos() {
     setCargando(true)
     try {
       const params = {}
-      if (buscar)      params.buscar = buscar
-      if (filtroGrado) params.grado  = filtroGrado
+      if (buscar)      params.buscar        = buscar
+      if (filtroGrado) params.grado_seccion = filtroGrado
       const { data } = await api.get('/colegios/alumnos/', { params })
       const lista = data.results ?? data
       setAlumnos(lista)
@@ -309,12 +301,9 @@ export default function DirectorAlumnos() {
   }
 
   const abrirCarnetSeccion = () => {
-    if (!filtroGrado) { setErrorGlobal('Selecciona un grado para imprimir la sección completa.'); return }
-    // Obtener el id del grado seleccionado
-    const gradoObj = grados.find(g => String(g.grado) === String(filtroGrado))
-    if (!gradoObj) { setErrorGlobal('Selecciona una sección específica.'); return }
+    if (!filtroGrado) { setErrorGlobal('Selecciona una sección para imprimir sus carnets.'); return }
     const token = localStorage.getItem('access_token') || ''
-    const url = `${API_BASE}/colegios/alumnos/carnets-seccion/?grado_id=${gradoObj.id}`
+    const url = `${API_BASE}/colegios/alumnos/carnets-seccion/?grado_id=${filtroGrado}`
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.blob())
       .then(blob => {
@@ -355,9 +344,9 @@ export default function DirectorAlumnos() {
         <div className="alu-filter-wrap">
           <IcoFilter />
           <select className="alu-select" value={filtroGrado} onChange={e => setFiltroGrado(e.target.value)}>
-            <option value="">Todos los grados</option>
+            <option value="">Todas las secciones</option>
             {grados.map(g => (
-              <option key={g.id} value={g.grado}>
+              <option key={g.id} value={g.id}>
                 {g.grado}° "{g.nombre_seccion}" — {g.nivel === 'PRIMARIA' ? 'Primaria' : 'Secundaria'}
               </option>
             ))}
@@ -393,10 +382,8 @@ export default function DirectorAlumnos() {
                 <th>Alumno</th>
                 <th>DNI</th>
                 <th>Sección</th>
-                <th>Código QR/Barras</th>
                 <th>Apoderado</th>
                 <th>WhatsApp</th>
-                <th>Estado</th>
                 <th></th>
               </tr>
             </thead>
@@ -414,12 +401,8 @@ export default function DirectorAlumnos() {
                   </td>
                   <td data-label="DNI"><span className="alu-mono">{a.dni ?? '—'}</span></td>
                   <td data-label="Sección">{a.grado_label ?? '—'}</td>
-                  <td data-label="Código">
-                    <span className="alu-codigo"><IcoBarcode /> {a.codigo_barras}</span>
-                  </td>
                   <td className="alu-text-soft" data-label="Apoderado">{a.apoderado?.nombre_completo ?? '—'}</td>
                   <td className="alu-text-soft alu-mono" data-label="WhatsApp">{a.apoderado?.telefono_whatsapp ?? '—'}</td>
-                  <td data-label="Estado"><BadgeEstado estado={a.estado} /></td>
                   <td className="alu-td-acc" data-label="Acciones">
                     <div className="alu-acciones">
                       <button className="alu-ico-btn alu-ico-btn--edit" onClick={() => abrirEdicion(a)} title="Editar"><IcoEdit /> <span className="alu-ico-txt">Editar</span></button>

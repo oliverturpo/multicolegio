@@ -14,7 +14,10 @@ const IcoPlus = () => (
 const normSub = (s) =>
   s.toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^[0-9]+/, '').slice(0, 31)
 
-const FORM0 = { nombre: '', subdominio: '', email_contacto: '', telefono: '', admin_password: '' }
+const FORM0 = {
+  nombre: '', subdominio: '', email_contacto: '', telefono: '',
+  admin_password: '', whatsapp_activo: false,
+}
 
 export default function PlataformaColegios() {
   const { duenio, logout } = usePlataformaAuth()
@@ -66,6 +69,17 @@ export default function PlataformaColegios() {
       cargar()
     } catch {
       setError(`No se pudo ${accion} el colegio.`)
+    }
+  }
+
+  const toggleWhatsapp = async (c) => {
+    const accion = c.whatsapp_activo ? 'desactivar' : 'activar'
+    if (!confirm(`¿${accion === 'activar' ? 'Activar' : 'Desactivar'} las notificaciones WhatsApp de "${c.nombre}"?`)) return
+    try {
+      await apiPlataforma.post(`/plataforma/colegios/${c.id}/toggle-whatsapp/`)
+      cargar()
+    } catch {
+      setError(`No se pudo ${accion} WhatsApp del colegio.`)
     }
   }
 
@@ -123,11 +137,22 @@ export default function PlataformaColegios() {
               <span className={`plat-estado plat-estado--${c.activo ? 'ok' : 'off'}`}>
                 <span className="plat-dot" />{c.activo ? 'Activo' : 'Suspendido'}
               </span>
-              <button
-                className={`plat-toggle ${c.activo ? '' : 'plat-toggle--reactivar'}`}
-                onClick={() => toggle(c)}>
-                {c.activo ? 'Suspender' : 'Reactivar'}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button
+                  className={`plat-toggle ${c.activo ? '' : 'plat-toggle--reactivar'}`}
+                  onClick={() => toggle(c)}>
+                  {c.activo ? 'Suspender' : 'Reactivar'}
+                </button>
+                <button
+                  className="plat-toggle"
+                  onClick={() => toggleWhatsapp(c)}
+                  title="Plan Premium: notificaciones por WhatsApp"
+                  style={c.whatsapp_activo
+                    ? { color: '#0f2a4c', borderColor: '#fbbf24', fontWeight: 700 }
+                    : undefined}>
+                  WhatsApp {c.whatsapp_activo ? 'ON' : 'OFF'}
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -203,6 +228,19 @@ export default function PlataformaColegios() {
                     onChange={e => setForm(f => ({ ...f, admin_password: e.target.value }))}
                     placeholder="mínimo 8 caracteres" />
                   <span className="plat-hint">No numérica, no común, no parecida al usuario.</span>
+                </div>
+
+                <div className="plat-mf">
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    cursor: 'pointer', textTransform: 'none',
+                    letterSpacing: 0, fontSize: 13, fontWeight: 500,
+                  }}>
+                    <input type="checkbox" checked={form.whatsapp_activo} disabled={guardando}
+                      onChange={e => setForm(f => ({ ...f, whatsapp_activo: e.target.checked }))}
+                      style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
+                    ¿Activar envío de notificaciones WhatsApp? (Plan Premium)
+                  </label>
                 </div>
 
                 <div className="plat-modal-actions">

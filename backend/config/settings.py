@@ -46,9 +46,14 @@ TENANT_MODEL = 'tenants.Cliente'
 TENANT_DOMAIN_MODEL = 'tenants.Dominio'
 
 # --- Middleware ---
+# CorsMiddleware va ANTES que TenantMainMiddleware a propósito: cuando el
+# host no corresponde a ningún colegio, TenantMainMiddleware genera la
+# respuesta 404 él mismo y corta la cadena. Si CorsMiddleware fuera después
+# nunca correría, y ese 404 saldría sin cabeceras CORS — el navegador lo
+# bloquearía y el frontend lo vería como error de red en vez de un 404.
 MIDDLEWARE = [
-    'django_tenants.middleware.main.TenantMainMiddleware',  # debe ser el primero
     'corsheaders.middleware.CorsMiddleware',
+    'django_tenants.middleware.main.TenantMainMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -62,6 +67,11 @@ ROOT_URLCONF = 'config.urls'
 # django-tenants: el schema public usa este urlconf (panel del dueño).
 # Los colegios (tenants) usan ROOT_URLCONF.
 PUBLIC_SCHEMA_URLCONF = 'config.urls_public'
+
+# Cuando el host no corresponde a ningún colegio registrado, django-tenants
+# invoca esta vista en vez de lanzar un Http404 HTML genérico. Devuelve un
+# JSON 404 que el frontend usa para la pantalla "Colegio no encontrado".
+DEFAULT_NOT_FOUND_TENANT_VIEW = 'config.views.tenant_no_encontrado'
 
 TEMPLATES = [
     {

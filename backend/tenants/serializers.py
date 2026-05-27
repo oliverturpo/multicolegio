@@ -54,7 +54,8 @@ class ColegioSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Cliente
         fields = ['id', 'nombre', 'schema_name', 'email_contacto',
-                  'telefono', 'activo', 'creado_en', 'dominio', 'url_acceso']
+                  'telefono', 'activo', 'whatsapp_activo', 'creado_en',
+                  'dominio', 'url_acceso']
         read_only_fields = fields
 
     def get_dominio(self, obj):
@@ -68,11 +69,12 @@ class ColegioSerializer(serializers.ModelSerializer):
 
 class CrearColegioSerializer(serializers.Serializer):
     """Alta de un colegio + su Director inicial (lo usa el dueño)."""
-    nombre         = serializers.CharField(max_length=200)
-    subdominio     = serializers.CharField(max_length=31)
-    email_contacto = serializers.EmailField()
-    telefono       = serializers.CharField(max_length=20, required=False, allow_blank=True, default='')
-    admin_password = serializers.CharField(write_only=True, min_length=8)
+    nombre          = serializers.CharField(max_length=200)
+    subdominio      = serializers.CharField(max_length=31)
+    email_contacto  = serializers.EmailField()
+    telefono        = serializers.CharField(max_length=20, required=False, allow_blank=True, default='')
+    admin_password  = serializers.CharField(write_only=True, min_length=8)
+    whatsapp_activo = serializers.BooleanField(required=False, default=False)
 
     def validate_subdominio(self, value):
         value = value.strip().lower()

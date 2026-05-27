@@ -52,6 +52,11 @@ with tenant_context(demo):
 "
 ```
 
+> El schema `demo` (local y prod) contiene el dataset real del **IES Tupac
+> Amaru**: 233 alumnos + 1853 asistencias, importado con `migrar_tupac.py`
+> (en la raíz del proyecto; lee `db_2026-05-20.sqlite3`, también en la raíz).
+> El script conserva los 4 usuarios de prueba y reemplaza el resto de datos.
+
 ## Producción (yachayqr.com)
 
 Servidor: **DigitalOcean** (`64.23.175.14`), Ubuntu, código en `/var/www/yachayqr/`.
@@ -60,7 +65,7 @@ Servidor: **DigitalOcean** (`64.23.175.14`), Ubuntu, código en `/var/www/yachay
 | Dominio | Schema | Notas |
 |---|---|---|
 | `yachayqr.com` | `public` | Panel del dueño. Superuser: `sicoa`. |
-| `demo.yachayqr.com` | `demo` | Colegio de prueba. |
+| `demo.yachayqr.com` | `demo` | Colegio de prueba. Tiene el dataset real del IESTA Tupac Amaru (233 alumnos). |
 | `iestacoasa.yachayqr.com` | `iestacoasa` | Primer colegio real (IESTA-COASA). Director inicial. |
 
 - DNS wildcard: `*.yachayqr.com` → `64.23.175.14`.
@@ -137,8 +142,22 @@ from tenants.models import Dominio
 d = Dominio.objects.get(domain='<sub>.localhost'); d.domain = '<sub>.yachayqr.com'; d.save()
 ```
 
+### Subdominio sin colegio + orden de middleware — HECHA (2026-05-21)
+Cuando el host no corresponde a ningún colegio (ej. `wadas.yachayqr.com`):
+- `settings.DEFAULT_NOT_FOUND_TENANT_VIEW` → `config.views.tenant_no_encontrado`
+  devuelve `404 {"detail": "Colegio no encontrado"}` (JSON) en vez de Http404 HTML.
+- `GET /api/v1/auth/verify-tenant/` (`config.views.verify_tenant`): 200 si el
+  colegio existe, 404 si es el schema `public`. `Login.jsx` la llama al montar
+  y, ante un 404, muestra la pantalla "Colegio no encontrado" en vez del form.
+- **`CorsMiddleware` va ANTES de `TenantMainMiddleware`** en `MIDDLEWARE`. Es
+  obligatorio: TenantMainMiddleware genera ese 404 él mismo y corta la cadena;
+  si CorsMiddleware fuera después nunca correría y el 404 saldría sin cabeceras
+  CORS — el navegador lo bloquearía (en dev, donde frontend y API son
+  cross-origin) y el frontend lo vería como error de red, no como 404.
+
 ## Modelos clave
 ```
+tenants:     Cliente (colegio/schema; whatsapp_activo = Plan Premium) → Dominio
 colegios:    GradoSeccion → Alumno → Apoderado (whatsapp)
 asistencia:  HorarioEscolar → SesionDiaria → Asistencia
              ContadorJustificacion (límite 3) → Notificacion
@@ -180,14 +199,13 @@ Referencia: `frontend/src/components/Layout/Layout.css`
 Login = superusuario de `public`. El `/api/v1/registro/` abierto fue eliminado.
 
 ## Estado actual — qué falta construir
-Todas las páginas son placeholders. Construir en este orden:
+Hechas: **Escáner** (input acepta solo DNI de 8 dígitos) y **Alumnos** (CRUD +
+carnet PDF). Pendientes, en orden de prioridad:
 
-1. **Escáner** (`/auxiliar/escaner`) — pantalla de uso diario, máxima prioridad
-2. **Dashboard Director** (`/director/dashboard`) — stats de sesión del día
-3. **Alumnos** — CRUD + generación de carnet PDF con código de barras
-4. **Justificaciones** — flujo psicólogo
-5. **Reportes** — exportar Excel/PDF
-6. **Usuarios** — CRUD usuarios del sistema
+1. **Dashboard Director** (`/director/dashboard`) — stats de sesión del día
+2. **Justificaciones** — flujo psicólogo
+3. **Reportes** — exportar Excel/PDF
+4. **Usuarios** — CRUD usuarios del sistema
 
 ## Horario escolar (demo)
 | Campo | Valor | Significado |
@@ -200,7 +218,10 @@ Todas las páginas son placeholders. Construir en este orden:
 El horario es modificable por el Director desde `/director/dashboard` (próximamente).
 
 ## Lógica de negocio importante
-- WhatsApp se envía al **cierre de sesión** (Celery task), no al escanear
+- WhatsApp se envía al **cierre de sesión** (Celery task), no al escanear.
+  Solo los colegios con `Cliente.whatsapp_activo=True` (Plan Premium) reciben
+  notificaciones; si es `False`, `asistencia/tasks.py` omite el envío en silencio.
+  El dueño activa/desactiva el plan desde el panel `/plataforma/colegios`.
 - Solo el **Auxiliar** puede cambiar Tardanza → Justificado (no el Director)
 - Límite de **3 justificaciones** por alumno; al llegar notifica al Director
 - Anti-fraude: detectar entrada manual de DNI vs escáner (modelo `IngresoManual`)
@@ -210,7 +231,7 @@ El horario es modificable por el Director desde `/director/dashboard` (próximam
 ## Configuración pendiente (requiere acción manual)
 - [x] Cloudflare Turnstile: validado en backend (`config/turnstile.py`). Falta poner `TURNSTILE_SECRET` en `.env` para activarlo en prod (en dev se omite).
 - [x] Carnet PDF: implementado en `colegios/carnet.py` (foto + barcode Code128 + QR, 4 por hoja). Falta solo el logo del colegio.
-- [ ] WhatsApp API: la tarea `asistencia/tasks.py` ya es tenant-aware; falta el envío real (Twilio / Meta Cloud API) donde está el `print(...)`. Requiere worker Celery corriendo.
+- [ ] WhatsApp API: la tarea `asistencia/tasks.py` ya es tenant-aware y solo envía a colegios con `whatsapp_activo=True`; el envío real está en `config/whatsapp.py`. Requiere worker Celery corriendo.
 
 ## Inconsistencias conocidas / a corregir
 - **`config/settings.py:110`** — `CORS_ALLOWED_ORIGIN_REGEXES` apunta a `\.yachayqr\.pe$` pero el dominio real es `.com`. Hoy no rompe porque frontend y API comparten origen (vía nginx), pero es código stale. Cambiar `.pe` → `.com`.
@@ -219,6 +240,18 @@ El horario es modificable por el Director desde `/director/dashboard` (próximam
 - Migración pendiente: aplicar `migrate_schemas` después del fix de `TENANT_DOMAIN_SUFFIX` no es necesario (no toca modelos), pero si añades nuevos campos al `Dominio`, sí.
 
 ## Historial de fixes importantes
+- **2026-05-21** — Migración de datos + 2 mejoras + fixes de UI:
+  1. `migrar_tupac.py` (raíz del proyecto) importó el backup del IES Tupac Amaru
+     al schema `demo` — 233 alumnos, 1853 asistencias. Lee `db_2026-05-20.sqlite3`
+     de la raíz. Corrido en local y en prod.
+  2. Mejora "Colegio no encontrado" para subdominios no registrados + orden de
+     middleware (ver Arquitectura).
+  3. Campo `Cliente.whatsapp_activo` (Plan Premium): toggle/checkbox en el panel
+     del dueño + gate en `asistencia/tasks.py`. Migración `tenants/0002`.
+  4. Escáner: el input solo acepta 8 dígitos (DNI).
+  5. `/director/alumnos`: quitadas columnas Código/Estado; búsqueda por nombre
+     completo con espacios (`Concat`, por palabra) y DNI; filtro por
+     `GradoSeccion` exacta (id) en vez de por número de grado.
 - **2026-05-17** — Migración a usuarios por-tenant (ver sección de Arquitectura).
 - **2026-05-20** — Setup inicial de prod en yachayqr.com:
   1. Creado `Cliente(public)` + `Dominio('yachayqr.com')` en BD (no existían → 404 en `/api/v1/plataforma/`).

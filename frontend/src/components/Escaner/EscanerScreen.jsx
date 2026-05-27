@@ -90,7 +90,9 @@ export default function EscanerScreen() {
 
   // ── Manejo del input ─────────────────────────────────────────
   const handleChange = (e) => {
-    const val = e.target.value
+    // El código es el DNI del alumno: solo dígitos, máximo 8.
+    // Se descarta cualquier otro carácter (letras, símbolos) y el exceso.
+    const val = e.target.value.replace(/\D/g, '').slice(0, 8)
     setCodigo(val)
     // Registrar tiempo del primer carácter
     if (val.length === 1) {
@@ -224,6 +226,8 @@ export default function EscanerScreen() {
               <input
                 ref={inputRef}
                 type="text"
+                inputMode="numeric"
+                maxLength={8}
                 className="esc-input"
                 value={codigo}
                 onChange={handleChange}

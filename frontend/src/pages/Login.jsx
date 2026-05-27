@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { useAuth } from '../context/AuthContext'
+import api from '../services/api'
 import './Login.css'
 
 const RUTA_POR_ROL = {
@@ -85,6 +86,57 @@ const QRDecoration = () => (
   </svg>
 )
 
+// ── Pantalla: colegio (subdominio) no registrado ─────────────────
+function ColegioNoEncontrado() {
+  return (
+    <div className="login-bg" style={{
+      background: 'linear-gradient(160deg, #1e3a5f 0%, #0f2a4c 100%)',
+      alignItems: 'center', justifyContent: 'center', padding: 24,
+    }}>
+      <div style={{
+        background: '#fff', borderRadius: 20, maxWidth: 440, width: '100%',
+        padding: '44px 40px', textAlign: 'center',
+        boxShadow: '0 24px 60px rgba(0,0,0,.35)',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 10, marginBottom: 28,
+        }}>
+          <QRDecoration />
+          <span style={{ fontSize: 22, fontWeight: 800, color: '#0f2a4c' }}>
+            Yachay<span style={{ color: '#fbbf24' }}>QR</span>
+          </span>
+        </div>
+
+        <div style={{
+          width: 64, height: 64, borderRadius: '50%', margin: '0 auto 20px',
+          display: 'grid', placeItems: 'center',
+          background: '#fef3c7', color: '#f59e0b',
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"
+            strokeLinejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+
+        <h1 style={{
+          fontSize: 22, fontWeight: 700, color: '#0f2a4c', margin: '0 0 10px',
+        }}>
+          Colegio no encontrado
+        </h1>
+        <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+          El colegio <b style={{ color: '#0f2a4c' }}>{window.location.hostname}</b> no
+          está registrado en YachayQR. Verifica la dirección o contacta al
+          administrador de tu institución.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ── Componente principal ─────────────────────────────────────────
 export default function Login() {
   const [form, setForm]               = useState({ username: '', password: '' })
@@ -92,9 +144,22 @@ export default function Login() {
   const [error, setError]             = useState('')
   const [cargando, setCargando]       = useState(false)
   const [turnstileOk, setTurnstileOk] = useState(false)
+  // 'verificando' | 'ok' | 'no_encontrado' — existencia del colegio del subdominio
+  const [tenantEstado, setTenantEstado] = useState('verificando')
   const turnstileToken                = useRef(null)
   const { login }                     = useAuth()
   const navigate                      = useNavigate()
+
+  // Al cargar, verifica que el subdominio corresponda a un colegio registrado.
+  useEffect(() => {
+    api.get('/auth/verify-tenant/')
+      .then(() => setTenantEstado('ok'))
+      .catch((err) => {
+        // 404 = subdominio sin colegio (o schema public). Cualquier otro
+        // error (red, 500) no bloquea el login.
+        setTenantEstado(err.response?.status === 404 ? 'no_encontrado' : 'ok')
+      })
+  }, [])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -114,6 +179,18 @@ export default function Login() {
     } finally {
       setCargando(false)
     }
+  }
+
+  if (tenantEstado === 'no_encontrado') return <ColegioNoEncontrado />
+  if (tenantEstado === 'verificando') {
+    return (
+      <div className="login-bg" style={{
+        background: 'linear-gradient(160deg, #1e3a5f 0%, #0f2a4c 100%)',
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <span className="btn-spinner" />
+      </div>
+    )
   }
 
   return (

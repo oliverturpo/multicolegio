@@ -47,6 +47,7 @@ class ColegioViewSet(viewsets.ModelViewSet):
             nombre=d['nombre'],
             email_contacto=d['email_contacto'],
             telefono=d.get('telefono', ''),
+            whatsapp_activo=d.get('whatsapp_activo', False),
         )
         cliente.save()
         Dominio.objects.create(
@@ -86,4 +87,12 @@ class ColegioViewSet(viewsets.ModelViewSet):
         cliente = self.get_object()
         cliente.activo = not cliente.activo
         cliente.save(update_fields=['activo'])
+        return Response(ColegioSerializer(cliente).data)
+
+    @action(detail=True, methods=['post'], url_path='toggle-whatsapp')
+    def toggle_whatsapp(self, request, pk=None):
+        """Activa o desactiva el plan de notificaciones WhatsApp del colegio."""
+        cliente = self.get_object()
+        cliente.whatsapp_activo = not cliente.whatsapp_activo
+        cliente.save(update_fields=['whatsapp_activo'])
         return Response(ColegioSerializer(cliente).data)
