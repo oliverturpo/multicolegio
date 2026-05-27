@@ -61,7 +61,7 @@ def enviar_template(telefono: str, template: str, params: list[str]) -> bool:
         'type': 'template',
         'template': {
             'name': template,
-            'language': {'code': 'es'},
+            'language': {'code': 'es_PE'},
             'components': [{
                 'type': 'body',
                 'parameters': [
