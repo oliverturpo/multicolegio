@@ -364,9 +364,16 @@ class _ReporteBase(APIView):
             )
         except ValueError:
             fecha = timezone.localdate()
+
+        grado_raw = request.query_params.get('grado_id')
+        try:
+            grado_id = int(grado_raw) if grado_raw else None
+        except (ValueError, TypeError):
+            grado_id = None
+
         return (
             fecha,
-            request.query_params.get('grado_id') or None,
+            grado_id,
             request.query_params.get('estado') or None,
         )
 

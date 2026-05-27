@@ -172,6 +172,33 @@
   padding: 3px 7px;
   letter-spacing: 0.05em;
 }
+/* ── Export desc (panel 03) ──────────────────────────────────── */
+.rep-export-desc {
+  font-size: 13.5px;
+  color: var(--text-soft);
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
+/* Variante clara: botones de exportación en fondo blanco */
+.rep-export-row--panel { margin: 0; }
+.rep-export--panel {
+  background: var(--bg);
+  color: var(--text-dark);
+  border-color: var(--border);
+}
+.rep-export--panel:hover:not(:disabled) {
+  background: #eef2f7;
+  border-color: var(--navy);
+  color: var(--navy);
+  transform: translateY(-2px);
+}
+.rep-export--panel .rep-export-txt strong { color: var(--text-dark); }
+.rep-export--panel .rep-export-txt small  { color: var(--text-soft); }
+.rep-export--panel > svg:last-child { color: var(--text-soft); }
+.rep-export--panel.rep-export--excel .rep-export-ico { background: #dcfce7; color: #16a34a; }
+.rep-export--panel.rep-export--pdf   .rep-export-ico { background: #fee2e2; color: #dc2626; }
+
 .rep-ghost {
   display: flex; align-items: center; gap: 7px;
   background: var(--bg);

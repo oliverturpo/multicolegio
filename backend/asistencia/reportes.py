@@ -13,6 +13,7 @@ import csv
 import io
 
 from django.db import connection
+from django.utils.timezone import localtime, now
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4, landscape
@@ -54,7 +55,7 @@ def _institucion() -> str:
 def _queryset(fecha, grado_id=None, estado=None):
     qs = (
         Asistencia.objects
-        .select_related('alumno', 'alumno__grado_seccion')
+        .select_related('alumno', 'alumno__grado_seccion', 'alumno__apoderado')
         .filter(fecha=fecha)
     )
     if grado_id:
@@ -97,6 +98,19 @@ def _grado_label(gs):
     return f'{gs.grado}° "{gs.nombre_seccion}"'
 
 
+def _pie_pagina(canvas, doc):
+    """Pie de página: fecha de generación a la izquierda, número de página a la derecha."""
+    canvas.saveState()
+    canvas.setFont('Helvetica', 7)
+    canvas.setFillColor(colors.HexColor('#64748b'))
+    w, _ = doc.pagesize
+    generado = f'Generado: {localtime(now()).strftime("%d/%m/%Y %H:%M")}'
+    pagina   = f'Página {canvas.getPageNumber()}'
+    canvas.drawString(doc.leftMargin, 0.75 * cm, generado)
+    canvas.drawRightString(w - doc.rightMargin, 0.75 * cm, pagina)
+    canvas.restoreState()
+
+
 # ── Excel (CSV UTF-8 BOM) ─────────────────────────────────────────
 
 def generar_excel(fecha, grado_id=None, estado=None) -> bytes:
@@ -117,9 +131,10 @@ def generar_excel(fecha, grado_id=None, estado=None) -> bytes:
         res['ausentes'], res['justificados'], f"{res['porcentaje']}%",
     ])
     w.writerow([])
-    w.writerow(['N°', 'DNI', 'Alumno', 'Grado / Sección', 'Estado', 'Hora', 'Método'])
+    w.writerow(['N°', 'DNI', 'Alumno', 'Grado / Sección', 'Estado', 'Hora', 'Método', 'Apoderado', 'Teléfono'])
     for i, r in enumerate(registros, 1):
         a = r.alumno
+        apo = getattr(a, 'apoderado', None)
         w.writerow([
             i,
             a.dni,
@@ -128,6 +143,8 @@ def generar_excel(fecha, grado_id=None, estado=None) -> bytes:
             ESTADO_LABEL.get(r.estado, r.estado),
             r.hora_registro.strftime('%H:%M') if r.hora_registro else '—',
             METODO_LABEL.get(r.metodo, r.metodo),
+            apo.nombre_completo if apo else '—',
+            apo.telefono_whatsapp if apo else '—',
         ])
 
     # BOM para que Excel detecte UTF-8 (tildes/ñ correctas)
@@ -202,10 +219,13 @@ def generar_pdf(fecha, grado_id=None, estado=None) -> bytes:
     el.append(Spacer(1, 16))
 
     # Tabla de registros
-    cab = ['N°', 'DNI', 'Alumno', 'Grado / Sección', 'Estado', 'Hora', 'Método']
+    # Anchos ajustados para 9 columnas en A4 horizontal (26.5 cm útiles):
+    # N°, DNI, Alumno, Grado/Sección, Estado, Hora, Método, Apoderado, Teléfono
+    cab = ['N°', 'DNI', 'Alumno', 'Grado / Sección', 'Estado', 'Hora', 'Método', 'Apoderado', 'Teléfono']
     filas = [cab]
     for i, r in enumerate(registros, 1):
-        a = r.alumno
+        a   = r.alumno
+        apo = getattr(a, 'apoderado', None)
         filas.append([
             str(i),
             a.dni,
@@ -214,27 +234,30 @@ def generar_pdf(fecha, grado_id=None, estado=None) -> bytes:
             ESTADO_LABEL.get(r.estado, r.estado),
             r.hora_registro.strftime('%H:%M') if r.hora_registro else '—',
             METODO_LABEL.get(r.metodo, r.metodo),
+            apo.nombre_completo if apo else '—',
+            apo.telefono_whatsapp if apo else '—',
         ])
 
     if len(filas) == 1:
-        filas.append(['', '', 'Sin registros para los filtros seleccionados.', '', '', '', ''])
+        filas.append(['', '', 'Sin registros para los filtros seleccionados.',
+                      '', '', '', '', '', ''])
 
     tabla = Table(
         filas,
-        colWidths=[1.1 * cm, 2.4 * cm, 8.5 * cm, 4.6 * cm, 3 * cm, 2 * cm, 2.6 * cm],
+        colWidths=[0.9*cm, 2.2*cm, 5.8*cm, 3.5*cm, 2.5*cm, 1.8*cm, 2.2*cm, 4.8*cm, 2.8*cm],
         repeatRows=1,
     )
     estilo = [
         ('BACKGROUND', (0, 0), (-1, 0), NAVY_MID),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 8.5),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('FONTSIZE', (0, 1), (-1, -1), 7.5),
         ('TEXTCOLOR', (0, 1), (-1, -1), INK),
-        ('ALIGN', (0, 0), (0, -1), 'CENTER'),
-        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-        ('ALIGN', (4, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (0, -1), 'CENTER'),   # N°
+        ('ALIGN', (1, 0), (1, -1), 'CENTER'),   # DNI
+        ('ALIGN', (4, 0), (6, -1), 'CENTER'),   # Estado, Hora, Método
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('TOPPADDING', (0, 0), (-1, -1), 5),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
@@ -242,9 +265,9 @@ def generar_pdf(fecha, grado_id=None, estado=None) -> bytes:
         ('BOX', (0, 0), (-1, -1), 0.5, BORDER),
     ]
     color_estado = {
-        'Presente': colors.HexColor('#15803d'),
-        'Tardanza': colors.HexColor('#b45309'),
-        'Ausente': colors.HexColor('#b91c1c'),
+        'Presente':    colors.HexColor('#15803d'),
+        'Tardanza':    colors.HexColor('#b45309'),
+        'Ausente':     colors.HexColor('#b91c1c'),
         'Justificado': colors.HexColor('#1d4ed8'),
     }
     for idx, r in enumerate(registros, 1):
@@ -257,6 +280,6 @@ def generar_pdf(fecha, grado_id=None, estado=None) -> bytes:
     tabla.setStyle(TableStyle(estilo))
     el.append(tabla)
 
-    doc.build(el)
+    doc.build(el, onFirstPage=_pie_pagina, onLaterPages=_pie_pagina)
     buf.seek(0)
     return buf.read()

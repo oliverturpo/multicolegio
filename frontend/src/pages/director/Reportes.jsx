@@ -129,37 +129,9 @@ export default function DirectorReportes() {
           <span className="rep-eyebrow">YachayQR · Documentos</span>
           <h1 className="rep-title">Repor<em>tes</em></h1>
           <p className="rep-lead">
-            Exporta la asistencia de cualquier día en Excel o PDF, lista para
-            imprimir o archivar.
+            Selecciona la fecha y los filtros, revisa la vista previa y
+            exporta la asistencia en Excel o PDF.
           </p>
-
-          <div className="rep-export-row">
-            <button
-              className="rep-export rep-export--excel"
-              onClick={() => exportar('excel')}
-              disabled={!!bajando}
-            >
-              <span className="rep-export-ico"><IcoExcel /></span>
-              <span className="rep-export-txt">
-                <strong>Exportar Excel</strong>
-                <small>Hoja de cálculo (.csv · UTF-8)</small>
-              </span>
-              {bajando === 'excel' ? <Spinner size={17} /> : <IcoDown />}
-            </button>
-
-            <button
-              className="rep-export rep-export--pdf"
-              onClick={() => exportar('pdf')}
-              disabled={!!bajando}
-            >
-              <span className="rep-export-ico"><IcoPdf /></span>
-              <span className="rep-export-txt">
-                <strong>Exportar PDF</strong>
-                <small>Documento listo para imprimir</small>
-              </span>
-              {bajando === 'pdf' ? <Spinner size={17} /> : <IcoDown />}
-            </button>
-          </div>
         </div>
 
         <div className="rep-hero-doc"><IcoDoc /></div>
@@ -286,12 +258,55 @@ export default function DirectorReportes() {
             {visibles.length > 0 && (
               <p className="rep-foot">
                 {visibles.length} registro{visibles.length !== 1 ? 's' : ''} ·
-                el archivo exportado incluye todas las columnas y el resumen.
+                el archivo exportado incluye todas las columnas, apoderado y el resumen.
               </p>
             )}
           </>
         )}
       </div>
+
+      {/* ── EXPORTAR ──────────────────────────────────────────── */}
+      <div className="rep-panel">
+        <div className="rep-panel-head">
+          <h2 className="rep-panel-title">
+            <span className="rep-num">03</span> Exportar reporte
+          </h2>
+        </div>
+        <p className="rep-export-desc">
+          {sesion
+            ? `${visibles.length} registro${visibles.length !== 1 ? 's' : ''} con los filtros actuales · incluye DNI, alumno, grado, estado, hora, apoderado y teléfono.`
+            : 'Sin sesión para la fecha seleccionada. El archivo se generará vacío.'
+          }
+        </p>
+        <div className="rep-export-row rep-export-row--panel">
+          <button
+            className="rep-export rep-export--excel rep-export--panel"
+            onClick={() => exportar('excel')}
+            disabled={!!bajando}
+          >
+            <span className="rep-export-ico"><IcoExcel /></span>
+            <span className="rep-export-txt">
+              <strong>Exportar Excel</strong>
+              <small>Hoja de cálculo (.csv · UTF-8)</small>
+            </span>
+            {bajando === 'excel' ? <Spinner size={17} /> : <IcoDown />}
+          </button>
+
+          <button
+            className="rep-export rep-export--pdf rep-export--panel"
+            onClick={() => exportar('pdf')}
+            disabled={!!bajando}
+          >
+            <span className="rep-export-ico"><IcoPdf /></span>
+            <span className="rep-export-txt">
+              <strong>Exportar PDF</strong>
+              <small>Documento listo para imprimir</small>
+            </span>
+            {bajando === 'pdf' ? <Spinner size={17} /> : <IcoDown />}
+          </button>
+        </div>
+      </div>
+
     </div>
   )
 }
