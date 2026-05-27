@@ -272,6 +272,15 @@
   color: var(--navy);
   background: linear-gradient(135deg, #e8eef7, #dce6f5);
 }
+.esc-hist-avatar--error {
+  color: #dc2626;
+  background: #fee2e2;
+  font-size: 18px;
+}
+.esc-hist-nombre--error {
+  color: #dc2626;
+  font-style: italic;
+}
 
 .esc-hist-info {
   flex: 1;

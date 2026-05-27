@@ -49,6 +49,7 @@ export default function EscanerScreen() {
 
   const inputRef      = useRef(null)
   const inicioInputRef = useRef(null)  // timestamp primer carácter (anti-fraude)
+  const procesandoRef  = useRef(false) // guard síncrono contra doble envío
 
   // ── Reloj ────────────────────────────────────────────────────
   useEffect(() => {
@@ -112,7 +113,8 @@ export default function EscanerScreen() {
 
   // ── Enviar escaneo ───────────────────────────────────────────
   const enviarCodigo = async (cod) => {
-    if (procesando) return
+    if (procesandoRef.current) return
+    procesandoRef.current = true
     setProcesando(true)
 
     // Detectar si fue manual o lector
@@ -151,16 +153,17 @@ export default function EscanerScreen() {
       }
 
     } catch (e) {
-      const msg = e.response?.data?.error || 'Error al registrar'
       const resultado = {
-        id:     Date.now(),
-        alumno: msg,
-        hora:   new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
-        estado: 'ERROR',
-        codigo: cod,
+        id:        Date.now(),
+        alumno:    null,
+        error_msg: e.response?.data?.error || 'Error al registrar',
+        hora:      new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+        estado:    'ERROR',
+        codigo:    cod,
       }
       setUltimoScan(resultado)
     } finally {
+      procesandoRef.current = false
       setProcesando(false)
       setTimeout(() => inputRef.current?.focus(), 50)
     }
@@ -264,14 +267,21 @@ export default function EscanerScreen() {
                   return (
                     <div key={h.id} className={`esc-hist-item ${i === 0 ? 'esc-hist-item--nuevo' : ''}`}>
                       <div className="esc-hist-foto">
-                        {h.foto_url
-                          ? <img src={h.foto_url} alt="" />
-                          : <div className="esc-hist-avatar">{h.alumno?.charAt(0) ?? '?'}</div>
+                        {h.estado === 'ERROR'
+                          ? <div className="esc-hist-avatar esc-hist-avatar--error">!</div>
+                          : h.foto_url
+                            ? <img src={h.foto_url} alt="" />
+                            : <div className="esc-hist-avatar">{h.alumno?.charAt(0) ?? '?'}</div>
                         }
                       </div>
                       <div className="esc-hist-info">
-                        <span className="esc-hist-nombre">{h.alumno}</span>
-                        {h.grado_label && <span className="esc-hist-grado">{h.grado_label}</span>}
+                        {h.estado === 'ERROR'
+                          ? <span className="esc-hist-nombre esc-hist-nombre--error">{h.error_msg}</span>
+                          : <>
+                              <span className="esc-hist-nombre">{h.alumno}</span>
+                              {h.grado_label && <span className="esc-hist-grado">{h.grado_label}</span>}
+                            </>
+                        }
                       </div>
                       <div className="esc-hist-right">
                         <span className="esc-hist-hora">{h.hora}</span>
@@ -324,8 +334,10 @@ function UltimoRegistro({ scan }) {
       </div>
 
       <div className="esc-ultimo-info">
-        <h2 className="esc-ultimo-nombre">{scan.alumno}</h2>
-        {scan.grado_label && (
+        <h2 className="esc-ultimo-nombre">
+          {scan.estado === 'ERROR' ? scan.error_msg : scan.alumno}
+        </h2>
+        {scan.grado_label && scan.estado !== 'ERROR' && (
           <p className="esc-ultimo-grado">{scan.grado_label}</p>
         )}
       </div>

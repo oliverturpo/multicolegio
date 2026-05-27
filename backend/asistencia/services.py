@@ -12,6 +12,7 @@ Responsabilidades:
 """
 from dataclasses import dataclass
 from django.db import IntegrityError
+from django.db.models import F
 from django.utils import timezone
 from colegios.models import Alumno
 from usuarios.models import UsuarioSistema
@@ -139,6 +140,10 @@ class EscaneoService:
 
         hora_actual = timezone.localtime().time()
 
+        dia_semana = hoy.weekday()  # 0=lunes … 6=domingo
+        if dia_semana not in horario.dias_laborables:
+            raise FueraDeHorarioError('Hoy no es día laborable.')
+
         if hora_actual < horario.hora_entrada:
             raise FueraDeHorarioError(
                 f'La entrada empieza a las {horario.hora_entrada.strftime("%H:%M")}.'
@@ -198,8 +203,11 @@ class EscaneoService:
     def _verificar_fraude(self, sesion: SesionDiaria, alumno: Alumno) -> None:
         """Registra el intento manual y alerta al Director si supera el umbral."""
         tracker, _ = IngresoManual.objects.get_or_create(sesion=sesion, alumno=alumno)
-        tracker.cantidad += 1
-        tracker.save(update_fields=['cantidad', 'ultimo_intento'])
+        IngresoManual.objects.filter(pk=tracker.pk).update(
+            cantidad=F('cantidad') + 1,
+            ultimo_intento=timezone.now(),
+        )
+        tracker.refresh_from_db()
 
         if tracker.cantidad >= self.UMBRAL_ALERTA_MANUAL and not tracker.alerta_enviada:
             Notificacion.objects.create(
