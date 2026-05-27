@@ -263,45 +263,37 @@
 .rep-stats {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 20px;
 }
 .rep-stat {
-  position: relative;
-  padding: 16px 14px;
-  border-radius: 13px;
-  background: var(--bg);
+  padding: 18px 16px 14px;
+  border-radius: 12px;
+  background: #fff;
   border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  overflow: hidden;
-}
-.rep-stat::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: var(--text-soft);
+  gap: 6px;
 }
 .rep-stat-n {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
-  color: var(--text-dark);
-  letter-spacing: -0.02em;
+  color: var(--navy);
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
-.rep-stat-n i { font-size: 14px; font-style: normal; color: var(--text-soft); margin-left: 1px; }
+.rep-stat-n i { font-size: 15px; font-style: normal; margin-left: 1px; }
 .rep-stat-l {
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
-.rep-stat--total::before { background: var(--navy); }
-.rep-stat--pre::before   { background: #16a34a; }
-.rep-stat--tar::before   { background: #d97706; }
-.rep-stat--aus::before   { background: #dc2626; }
-.rep-stat--jus::before   { background: #2563eb; }
-.rep-stat--pct::before   { background: var(--gold); }
+.rep-stat--pre .rep-stat-n { color: #16a34a; }
+.rep-stat--tar .rep-stat-n { color: #d97706; }
+.rep-stat--aus .rep-stat-n { color: #dc2626; }
+.rep-stat--jus .rep-stat-n { color: #2563eb; }
 .rep-stat--pct .rep-stat-n { color: var(--gold-dark); }
 
 /* ── Tabla ───────────────────────────────────────────────────── */
