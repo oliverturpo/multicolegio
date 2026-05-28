@@ -217,6 +217,14 @@ class Card:
         p.roundRect(self.ox, self.oy, CARD_W, CARD_H, radius * K)
         c.clipPath(p, stroke=0, fill=0)
 
+    def clip_round_rect(self, x, y, w, h, radius):
+        """Recorta el canvas a un rectángulo redondeado en coords de diseño."""
+        c = self.c
+        bx, by = self._x(x), self.oy + CARD_H - (y + h) * K
+        p = c.beginPath()
+        p.roundRect(bx, by, w * K, h * K, radius * K)
+        c.clipPath(p, stroke=0, fill=0)
+
 
 # ── ANVERSO ───────────────────────────────────────────────────────
 def _anverso(c, alumno, ox, oy, institucion, logo_path):
@@ -251,10 +259,13 @@ def _anverso(c, alumno, ox, oy, institucion, logo_path):
 
     # ── Cuerpo (foto + datos) ─────────────────────────────────────
     PX, PY, PW, PH = 14, HH + 12, 82, 100
+    c.saveState()
+    card.clip_round_rect(PX, PY, PW, PH, 6)   # foto recortada al radio del borde
     if not card.image(foto, PX, PY, PW, PH, fit='cover'):
         card.rect(PX, PY, PW, PH, fill=PHOTO_BG)
         card.text(PX + PW / 2, PY + PH / 2 + 10, inicial, 40, GRAY,
                   bold=True, align='center')
+    c.restoreState()
     card.rect(PX, PY, PW, PH, stroke=NAVY, lw=2, radius=6)
 
     # Placa QR (abajo-derecha): no invade foto, datos ni footer
@@ -279,8 +290,11 @@ def _anverso(c, alumno, ox, oy, institucion, logo_path):
 
     card.rect(qtx, qty, QT, QT, fill=WHITE, stroke=BORDER, lw=1, radius=6)
     try:
+        c.saveState()
+        card.clip_round_rect(qtx, qty, QT, QT, 6)   # QR recortado al radio de la placa
         card.draw_reader(_qr(alumno.codigo_barras),
                          qtx + QP, qty + QP, QT - 2 * QP, QT - 2 * QP)
+        c.restoreState()
     except Exception:
         pass
 

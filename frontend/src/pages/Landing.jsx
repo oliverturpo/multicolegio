@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import './Landing.css'
+import anversoImg from '../assets/anverso.png'
+import reversoImg from '../assets/reverso.png'
 
 /* ── Íconos ──────────────────────────────────────────────────────── */
 const Arrow = (p) => (
@@ -52,9 +54,17 @@ const Ico = ({ d }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
 )
-
-/* anchos pseudo-aleatorios pero estables para el código de barras */
-const BARS = '4123214132412341231424132142314123412431'.split('').map(Number)
+const WA = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 2.1.55 4.06 1.6 5.83L2 22l4.4-1.15a9.9 9.9 0 0 0 5.64 1.74h.01c5.46 0 9.91-4.45 9.91-9.91a9.84 9.84 0 0 0-2.9-7.02A9.84 9.84 0 0 0 12.04 2Zm0 18.13a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-2.6.68.7-2.54-.2-.32a8.2 8.2 0 0 1-1.26-4.39c0-4.54 3.7-8.23 8.24-8.23 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.69 8.24-8.23 8.24Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.39.11-.51.11-.11.25-.29.37-.43.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.42h-.47c-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.28Z" />
+  </svg>
+)
+const Check = () => (
+  <svg className="lp-plan-check" width="18" height="18" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+)
 
 const PASOS = [
   { n: '1', t: 'Un carnet, un código', d: 'Cada alumno recibe su carnet con código de barras y QR basado en su DNI. Se imprime desde el sistema, listo en PDF.' },
@@ -115,33 +125,29 @@ export default function Landing() {
               su propio espacio aislado. Sin cuadernos, sin dudas.
             </p>
             <div className="lp-cta-row">
-              <a className="lp-btn" href="mailto:hola@yachayqr.pe?subject=Quiero%20una%20demo%20de%20YachayQR">
+              <a className="lp-btn" href="mailto:hola@yachayqr.com?subject=Quiero%20una%20demo%20de%20YachayQR">
                 Solicitar una demo <Arrow />
+              </a>
+              <a className="lp-btn-wa" href="https://wa.me/51927609290"
+                target="_blank" rel="noopener noreferrer">
+                <WA /> WhatsApp directo
               </a>
               <a className="lp-btn-ghost" href="#como-funciona">Ver cómo funciona</a>
             </div>
           </div>
 
-          {/* Carnet con haz de escaneo */}
+          {/* Carnet real — flip al hover: anverso ⇄ reverso */}
           <div className="lp-scene">
-            <div className="lp-card">
-              <div className="lp-card-school">I.E. — Demo · YachayQR</div>
-              <div className="lp-card-top">
-                <div className="lp-avatar">
-                  <Ico d={<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>} />
+            <div className="lp-flip">
+              <div className="lp-flip-inner">
+                <div className="lp-flip-face lp-flip-front">
+                  <img src={anversoImg} alt="Carnet estudiantil YachayQR — anverso" />
+                  <span className="lp-beam" aria-hidden="true" />
                 </div>
-                <div className="lp-card-id">
-                  <div className="n">María Quispe Mamani</div>
-                  <div className="g">3.° "A" · Secundaria</div>
+                <div className="lp-flip-face lp-flip-back">
+                  <img src={reversoImg} alt="Carnet estudiantil YachayQR — reverso" />
                 </div>
               </div>
-              <div className="lp-barcode" aria-hidden="true">
-                {BARS.map((w, i) => (
-                  <i key={i} style={{ width: w + 'px', opacity: i % 5 === 0 ? 0.55 : 1 }} />
-                ))}
-              </div>
-              <div className="lp-code">7 0 1 2 3 4 5 6</div>
-              <span className="lp-beam" aria-hidden="true" />
             </div>
             <span className="lp-ping" aria-hidden="true">
               <span className="dot" /> <b>Presente</b> · 07:42
@@ -151,6 +157,11 @@ export default function Landing() {
       </header>
 
       <div className="lp-greca"><Greca /></div>
+
+      {/* ── PRUEBA SOCIAL ───────────────────────────────────── */}
+      <p className="lp-trust">
+        Ya usado por colegios en la región <strong>Puno, Perú</strong>
+      </p>
 
       {/* ── CÓMO FUNCIONA ───────────────────────────────────── */}
       <section className="lp-section" id="como-funciona">
@@ -190,6 +201,43 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── PLANES ──────────────────────────────────────────── */}
+      <section className="lp-section" id="planes">
+        <div className="lp-section-head">
+          <span className="lp-eyebrow">Planes</span>
+          <h2 className="lp-h2">Empieza gratis. Crece cuando <em>lo necesites</em>.</h2>
+        </div>
+        <div className="lp-plans">
+          <article className="lp-plan">
+            <div className="lp-plan-name">Gratuito</div>
+            <p className="lp-plan-desc">Todo lo esencial para controlar la asistencia desde el primer día.</p>
+            <ul className="lp-plan-list">
+              <li><Check /> Registro de asistencia por escaneo</li>
+              <li><Check /> Carnets en PDF con código de barras y QR</li>
+              <li><Check /> Reportes exportables en Excel y PDF</li>
+            </ul>
+            <a className="lp-plan-cta lp-btn-ghost"
+              href="mailto:hola@yachayqr.com?subject=Quiero%20el%20plan%20Gratuito%20de%20YachayQR">
+              Empezar gratis
+            </a>
+          </article>
+          <article className="lp-plan lp-plan--premium">
+            <div className="lp-plan-badge">Recomendado</div>
+            <div className="lp-plan-name">Premium</div>
+            <p className="lp-plan-desc">El control completo, con aviso automático al hogar.</p>
+            <ul className="lp-plan-list">
+              <li><Check /> Todo lo del plan Gratuito</li>
+              <li><Check /> Notificaciones automáticas por WhatsApp a los apoderados</li>
+              <li><Check /> Aviso de tardanzas e inasistencias al cierre del día</li>
+            </ul>
+            <a className="lp-plan-cta lp-btn"
+              href="mailto:hola@yachayqr.com?subject=Quiero%20el%20plan%20Premium%20de%20YachayQR">
+              Quiero Premium <Arrow />
+            </a>
+          </article>
+        </div>
+      </section>
+
       {/* ── PRINCIPIOS ──────────────────────────────────────── */}
       <section className="lp-section">
         <div className="lp-section-head">
@@ -223,9 +271,15 @@ export default function Landing() {
             Te damos de alta tu colegio con su propio acceso y tu usuario Director.
             Escríbenos y coordinamos una demostración.
           </p>
-          <a className="lp-btn" href="mailto:hola@yachayqr.pe?subject=Quiero%20YachayQR%20para%20mi%20colegio">
-            Hablar con el equipo <Arrow />
-          </a>
+          <div className="lp-cta-row" style={{ justifyContent: 'center' }}>
+            <a className="lp-btn" href="mailto:hola@yachayqr.com?subject=Quiero%20YachayQR%20para%20mi%20colegio">
+              Hablar con el equipo <Arrow />
+            </a>
+            <a className="lp-btn-wa" href="https://wa.me/51927609290"
+              target="_blank" rel="noopener noreferrer">
+              <WA /> WhatsApp directo
+            </a>
+          </div>
         </div>
       </section>
 
@@ -236,8 +290,12 @@ export default function Landing() {
           <small>Control de asistencia escolar · Perú</small>
         </div>
         <div className="lp-footer-links">
-          <a href="mailto:hola@yachayqr.pe" style={{ color: 'rgba(255,255,255,.42)', textDecoration: 'none' }}>
+          <a href="mailto:hola@yachayqr.com" style={{ color: 'rgba(255,255,255,.42)', textDecoration: 'none' }}>
             Contacto
+          </a>
+          <a href="https://wa.me/51927609290" target="_blank" rel="noopener noreferrer"
+            style={{ color: 'rgba(255,255,255,.42)', textDecoration: 'none' }}>
+            WhatsApp
           </a>
           <button onClick={irAlPanel}>Acceso al panel</button>
           <small>© {year} YachayQR</small>
