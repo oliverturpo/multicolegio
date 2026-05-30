@@ -65,33 +65,51 @@ Servidor: **DigitalOcean** (`64.23.175.14`), Ubuntu, código en `/var/www/yachay
 | Dominio | Schema | Notas |
 |---|---|---|
 | `yachayqr.com` | `public` | Panel del dueño. Superuser: `sicoa`. |
-| `demo.yachayqr.com` | `demo` | Colegio de prueba. Tiene el dataset real del IESTA Tupac Amaru (233 alumnos). |
-| `iestacoasa.yachayqr.com` | `iestacoasa` | Primer colegio real (IESTA-COASA). Director inicial. |
+| `demo.yachayqr.com` | `demo` | Colegio de prueba. Dataset real IESTA Tupac Amaru (233 alumnos). |
+| `iestacoasa.yachayqr.com` | `iestacoasa` | Primer colegio real (IESTA-COASA). |
 
 - DNS wildcard: `*.yachayqr.com` → `64.23.175.14`.
 - SSL: Let's Encrypt wildcard cubre `*.yachayqr.com` + `yachayqr.com` (`/etc/letsencrypt/live/yachayqr.com/`).
-- El `Cliente(schema_name='public')` y el `Dominio('yachayqr.com')` se crearon manualmente (django-tenants no los crea solo). Si se reconstruye la BD, **hay que recrearlos** además de los tenants normales.
+- El `Cliente(schema_name='public')` y el `Dominio('yachayqr.com')` se crearon manualmente. Si se reconstruye la BD, **hay que recrearlos**.
 
 ### Servicios (systemd) y comandos comunes
 | Servicio | Qué hace | Reiniciar |
 |---|---|---|
 | `yachayqr.service` | Gunicorn (Django) en `127.0.0.1:8000`, 3 workers | `systemctl restart yachayqr` |
-| `yachayqr-celery.service` | Worker Celery (tareas async) | `systemctl restart yachayqr-celery` |
+| `yachayqr-celery.service` | Worker Celery (tareas async, WhatsApp) | `systemctl restart yachayqr-celery` |
+| `yachayqr-celery-beat.service` | Celery Beat (cierre automático de sesiones cada 5 min) | `systemctl restart yachayqr-celery-beat` |
 | `nginx` | Proxy + SSL + sirve `frontend/dist/` | `systemctl reload nginx` |
 
-Nginx config: `/etc/nginx/sites-enabled/yachayqr`. Sirve `/api/` → `proxy_pass http://127.0.0.1:8000`; resto → SPA del `frontend/dist/`. El header `Host` se pasa intacto, por eso django-tenants resuelve el tenant correcto.
+**Pendiente en servidor:** crear `/etc/systemd/system/yachayqr-celery-beat.service`:
+```ini
+[Unit]
+Description=YachayQR Celery Beat
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/var/www/yachayqr/backend
+ExecStart=/var/www/yachayqr/backend/venv/bin/celery -A config beat --loglevel=info
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+Luego: `systemctl daemon-reload && systemctl enable --now yachayqr-celery-beat`
+
+Nginx config: `/etc/nginx/sites-enabled/yachayqr`. Sirve `/api/` → `proxy_pass http://127.0.0.1:8000`; resto → SPA del `frontend/dist/`. El header `Host` se pasa intacto.
 
 ### Variables del `.env` de prod (`/var/www/yachayqr/backend/.env`)
 ```
 DEBUG=False
 ALLOWED_HOSTS=.yachayqr.com,yachayqr.com,64.23.175.14
-TENANT_DOMAIN_SUFFIX=yachayqr.com               # sufijo de tenants nuevos (ver sección abajo)
+TENANT_DOMAIN_SUFFIX=yachayqr.com
 TENANT_LOGIN_URL_TEMPLATE=https://{sub}.yachayqr.com/login
 DB_NAME=yachayqr  /  DB_USER=yachayqr  /  DB_HOST=localhost
 REDIS_URL=redis://localhost:6379/0
 TURNSTILE_SECRET=                                # vacío = omite Turnstile
 ```
-El `.env` está en `.gitignore` — no se sube a GitHub. El de dev (`F:/SaaS/backend/.env`) vive solo en la laptop.
+Con `DEBUG=False`, `CACHES` usa `RedisCache` (DB 1) automáticamente — el throttle de DRF se comparte entre todos los workers. En dev (DEBUG=True) usa `LocMemCache` sin necesitar Redis.
 
 ### Workflow de despliegue (laptop → prod)
 1. **En laptop** (`F:/SaaS/`): commitear + `git push origin main`
@@ -99,61 +117,23 @@ El `.env` está en `.gitignore` — no se sube a GitHub. El de dev (`F:/SaaS/bac
    ```bash
    git pull origin main
    # Si tocaste backend Python:
-   systemctl restart yachayqr yachayqr-celery
+   systemctl restart yachayqr yachayqr-celery yachayqr-celery-beat
    # Si añadiste migraciones:
    cd backend && source venv/bin/activate && python manage.py migrate_schemas
    # Si tocaste frontend:
-   cd frontend && npm run build      # nginx ya sirve el dist/
+   cd frontend && npm run build
    ```
 
 ### SSH deploy key (servidor ↔ GitHub)
-El servidor pushea/pullea por SSH con la deploy key `~/.ssh/yachayqr_deploy` (configurada en `~/.ssh/config` para `github.com`). La pública está registrada en GitHub → repo `oliverturpo/multicolegio` → Settings → Deploy keys (con write access). Remote: `git@github.com:oliverturpo/multicolegio.git`.
+Deploy key `~/.ssh/yachayqr_deploy` en servidor. Remote: `git@github.com:oliverturpo/multicolegio.git`.
 
 ## Arquitectura multi-tenant
 - Registro de colegio → crea `Cliente` (schema propio) + `Dominio` + Director inicial (en su schema)
-- `SHARED_APPS`: tenants, contenttypes, **auth**, admin, sessions, simplejwt, token_blacklist (schema `public` = superusuario/plataforma)
+- `SHARED_APPS`: tenants, contenttypes, **auth**, admin, sessions, simplejwt, token_blacklist
 - `TENANT_APPS`: contenttypes, **auth**, token_blacklist, colegios, asistencia, usuarios
-- **Los usuarios son por colegio**: `auth_user` vive en cada schema de tenant (aislamiento real). El login ocurre en contexto de tenant, así resuelve contra el `auth_user` del colegio correcto.
-- JWT personalizado (`YachayQRTokenSerializer`) embebe `rol` y `nombre_completo`; access token = 60 min
-- Turnstile se valida en el backend (`config/turnstile.py`); en dev se omite si `TURNSTILE_SECRET` está vacío
-
-### Migración a usuarios por-tenant — HECHA (2026-05-17)
-Ya ejecutada y verificada: `public` conserva el superusuario; `demo` tiene su propio `auth_user` con los 4 usuarios. **Ojo:** para un schema viejo creado cuando `auth` era SHARED, `migrate_schemas` es no-op (su `django_migrations` ya marca `auth` aplicada aunque la tabla no exista). Si hay que reconstruir `demo` (o cualquier tenant en ese estado), recrear el schema:
-```python
-# manage.py shell  (venv Windows activo)
-from django.db import connection
-from tenants.models import Cliente, Dominio
-with connection.cursor() as c: c.execute('DROP SCHEMA IF EXISTS demo CASCADE')
-Cliente.objects.filter(schema_name='demo').delete()
-demo = Cliente(schema_name='demo', nombre='Colegio Demo YachayQR', email_contacto='demo@yachayqr.pe'); demo.save()
-Dominio.objects.create(domain='demo.localhost', tenant=demo, is_primary=True)
-Dominio.objects.create(domain='127.0.0.1', tenant=demo, is_primary=False)
-# luego correr el snippet 'Recrear si se borra la BD' de abajo (crea los usuarios en demo)
-```
-
-### Dominio de tenant configurable — HECHA (2026-05-20)
-Antes el alta de colegio en `tenants/views.py` hardcodeaba `<subdominio>.localhost`, lo que rompía prod (django-tenants no resolvía el host real). Ahora compone el dominio con `settings.TENANT_DOMAIN_SUFFIX`:
-- **Dev** (variable ausente en `.env`): default `'localhost'` → crea `mgcj.localhost` (igual que antes)
-- **Prod** (`TENANT_DOMAIN_SUFFIX=yachayqr.com`): crea `mgcj.yachayqr.com` automáticamente
-
-Cero impacto en flujo de desarrollo. Para colegios viejos creados antes del fix con dominio `.localhost` en prod, hay que renombrar en BD:
-```python
-from tenants.models import Dominio
-d = Dominio.objects.get(domain='<sub>.localhost'); d.domain = '<sub>.yachayqr.com'; d.save()
-```
-
-### Subdominio sin colegio + orden de middleware — HECHA (2026-05-21)
-Cuando el host no corresponde a ningún colegio (ej. `wadas.yachayqr.com`):
-- `settings.DEFAULT_NOT_FOUND_TENANT_VIEW` → `config.views.tenant_no_encontrado`
-  devuelve `404 {"detail": "Colegio no encontrado"}` (JSON) en vez de Http404 HTML.
-- `GET /api/v1/auth/verify-tenant/` (`config.views.verify_tenant`): 200 si el
-  colegio existe, 404 si es el schema `public`. `Login.jsx` la llama al montar
-  y, ante un 404, muestra la pantalla "Colegio no encontrado" en vez del form.
-- **`CorsMiddleware` va ANTES de `TenantMainMiddleware`** en `MIDDLEWARE`. Es
-  obligatorio: TenantMainMiddleware genera ese 404 él mismo y corta la cadena;
-  si CorsMiddleware fuera después nunca correría y el 404 saldría sin cabeceras
-  CORS — el navegador lo bloquearía (en dev, donde frontend y API son
-  cross-origin) y el frontend lo vería como error de red, no como 404.
+- **Los usuarios son por colegio**: `auth_user` en cada schema. Login en contexto de tenant.
+- JWT personalizado (`YachayQRTokenSerializer`) embebe `rol` y `nombre_completo`; access = 60 min
+- Turnstile en `config/turnstile.py`; se omite si `TURNSTILE_SECRET` está vacío (dev)
 
 ## Modelos clave
 ```
@@ -181,7 +161,7 @@ Referencia: `frontend/src/components/Layout/Layout.css`
 /login                       → Login (público)
 /director/dashboard          → Dashboard con stats
 /director/escaner            → Escáner
-/director/alumnos            → CRUD alumnos + carnet
+/director/alumnos            → CRUD alumnos + carnet (paginación 100/página)
 /director/asistencias        → Lista asistencias
 /director/reportes           → Exportar Excel/PDF
 /director/usuarios           → Gestión de usuarios
@@ -196,16 +176,17 @@ Referencia: `frontend/src/components/Layout/Layout.css`
 /plataforma/colegios         → Alta/suspensión de colegios (panel del dueño)
 ```
 **Panel del dueño:** API en `localhost:8000/api/v1/plataforma/` (NO 127.0.0.1).
-Login = superusuario de `public`. El `/api/v1/registro/` abierto fue eliminado.
 
-## Estado actual — qué falta construir
-Hechas: **Escáner** (input acepta solo DNI de 8 dígitos) y **Alumnos** (CRUD +
-carnet PDF). Pendientes, en orden de prioridad:
-
-1. **Dashboard Director** (`/director/dashboard`) — stats de sesión del día
-2. **Justificaciones** — flujo psicólogo
-3. **Reportes** — exportar Excel/PDF
-4. **Usuarios** — CRUD usuarios del sistema
+## Estado actual — todo construido ✅
+- **Escáner** — escaneo DNI, apertura automática de sesión, anti-fraude
+- **Alumnos** — CRUD + carnet PDF + paginación frontend (100/página, lazy loading fotos)
+- **Asistencias** — listado con filtros
+- **Reportes** — Excel/PDF con datos de apoderado y teléfono
+- **Usuarios** — CRUD con roles, Director no puede editarse a sí mismo
+- **Dashboard Director** — stats de sesión del día
+- **Justificaciones** — flujo psicólogo con límite 3
+- **Landing pública** — `yachayqr.com` (schema public)
+- **Cierre automático de sesiones** — Celery Beat cada 5 min
 
 ## Horario escolar (demo)
 | Campo | Valor | Significado |
@@ -215,48 +196,75 @@ carnet PDF). Pendientes, en orden de prioridad:
 | hora_cierre | 09:00 | Se cierra, los sin registro = AUSENTE automático |
 | dias_laborables | [0,1,2,3,4] | Lunes a viernes |
 
-El horario es modificable por el Director desde `/director/dashboard` (próximamente).
-
 ## Lógica de negocio importante
-- WhatsApp se envía al **cierre de sesión** (Celery task), no al escanear.
-  Solo los colegios con `Cliente.whatsapp_activo=True` (Plan Premium) reciben
-  notificaciones; si es `False`, `asistencia/tasks.py` omite el envío en silencio.
-  El dueño activa/desactiva el plan desde el panel `/plataforma/colegios`.
-- Solo el **Auxiliar** puede cambiar Tardanza → Justificado (no el Director)
-- Límite de **3 justificaciones** por alumno; al llegar notifica al Director
-- Anti-fraude: detectar entrada manual de DNI vs escáner (modelo `IngresoManual`)
-- El código de barras / QR **es el DNI** del alumno (sin prefijo; el requisito "YQ"+DNI fue eliminado)
-- Sección puede ser texto libre: "A", "B", "Albert Einstein"
+- **Cierre automático**: `cerrar_sesiones_expiradas` (Celery Beat, cada 5 min) cierra sesiones cuyo `hora_cierre` ya pasó, crea AUSENTE para los sin registro y encola WhatsApp.
+- WhatsApp se envía al **cierre de sesión** (Celery task). Solo colegios con `whatsapp_activo=True` reciben notificaciones.
+- Solo **Director o Auxiliar** pueden justificar (PSICOLOGO también). Solo Auxiliar puede Tardanza→Presente el mismo día.
+- Límite de **3 justificaciones** por alumno; al llegar notifica al Director.
+- Anti-fraude: `IngresoManual` detecta DNI digitado a mano vs escáner.
+- El código de barras / QR **es el DNI** del alumno (sin prefijo).
+- Sección puede ser texto libre: "A", "B", "Albert Einstein".
+- `AlumnoSerializer` valida DNI (8 dígitos numéricos) y campos de texto no vacíos en el servidor.
+
+## Permisos HTTP por rol (tabla rápida)
+| Endpoint | DIRECTOR | AUXILIAR | PSICOLOGO | ESCANER |
+|---|---|---|---|---|
+| Horarios GET | ✅ | ✅ | ✅ | ✅ |
+| Horarios POST/PUT/PATCH/DELETE | ✅ | ❌ | ❌ | ❌ |
+| Sesiones GET | ✅ | ✅ | ✅ | ✅ |
+| Sesiones POST | ✅ | ✅ | ✅ | ✅ |
+| Sesiones DELETE/PUT | ❌ (405) | ❌ (405) | ❌ (405) | ❌ (405) |
+| Alumnos GET | ✅ | ✅ | ✅ | ❌ |
+| Alumnos POST/PATCH | ✅ | ✅ | ❌ | ❌ |
+| Alumnos DELETE | ✅ | ❌ (403) | ❌ | ❌ |
+| Usuarios (listar/crear/editar) | ✅ | ❌ | ❌ | ❌ |
+| Colegios DELETE | ❌ (405) | — | — | — |
+
+## Arquitectura del escáner — puntos clave
+- `EscaneoService.procesar()` corre en `transaction.atomic()`. Los dos lugares con `IntegrityError` (apertura de sesión + doble escaneo) usan savepoints internos (`with transaction.atomic()` anidado).
+- `SesionDiaria.actualizar_contadores()` usa `queryset.update()` — un solo UPDATE SQL sin read-modify-write. Idempotente bajo carga concurrente.
+- `CONN_MAX_AGE=60` en `DATABASES` — conexiones persistentes por worker.
+- Throttle `EscaneoThrottle`: 120/min por usuario (compartido entre workers en prod gracias a Redis cache).
 
 ## Configuración pendiente (requiere acción manual)
-- [x] Cloudflare Turnstile: validado en backend (`config/turnstile.py`). Falta poner `TURNSTILE_SECRET` en `.env` para activarlo en prod (en dev se omite).
-- [x] Carnet PDF: implementado en `colegios/carnet.py` (foto + barcode Code128 + QR, 4 por hoja). Falta solo el logo del colegio.
-- [ ] WhatsApp API: la tarea `asistencia/tasks.py` ya es tenant-aware y solo envía a colegios con `whatsapp_activo=True`; el envío real está en `config/whatsapp.py`. Requiere worker Celery corriendo.
+- [ ] **Celery Beat en servidor**: crear el `.service` y habilitar (ver sección Producción).
+- [ ] **WhatsApp API**: `config/whatsapp.py` listo. Falta `WHATSAPP_TOKEN` y `WHATSAPP_PHONE_ID` en `.env` de prod.
+- [ ] **Turnstile en prod**: poner `TURNSTILE_SECRET` en `.env` de prod para activarlo.
+- [x] Carnet PDF: `colegios/carnet.py` (foto + barcode + QR, 4 por hoja). Falta logo del colegio.
+
+## Landing pública (`frontend/src/pages/Landing.jsx`)
+Estructura actual (orden de secciones):
+1. Nav
+2. Hero — con botón "Ver planes" (scroll suave, flecha animada)
+3. Greca andina (separador)
+4. Prueba social
+5. **Planes** — 3 tarjetas (Gratuito / Premium S/49.90 / Enterprise), animación al entrar en viewport
+6. Features — 6 tarjetas fondo navy
+7. CTA final — fondo blanco, texto navy
+8. Footer
+
+**Contacto real**: `cliver20oliver23@gmail.com` · WhatsApp `+51 963 366 849`
 
 ## Inconsistencias conocidas / a corregir
-- **`config/settings.py:110`** — `CORS_ALLOWED_ORIGIN_REGEXES` apunta a `\.yachayqr\.pe$` pero el dominio real es `.com`. Hoy no rompe porque frontend y API comparten origen (vía nginx), pero es código stale. Cambiar `.pe` → `.com`.
-- **`config/settings.py:148`** — comentario stale dice `colegio.yachayqr.pe` en la doc de `TENANT_LOGIN_URL_TEMPLATE`. Cambiar a `.com`.
-- **`tenants/management/commands/crear_tenant_publico.py:21`** — el comando crea `domain='localhost'` hardcodeado. Para prod habría que parametrizarlo, o simplemente no usar este comando en prod (ya está hecho a mano).
-- Migración pendiente: aplicar `migrate_schemas` después del fix de `TENANT_DOMAIN_SUFFIX` no es necesario (no toca modelos), pero si añades nuevos campos al `Dominio`, sí.
+- **`tenants/management/commands/crear_tenant_publico.py:21`** — crea `domain='localhost'` hardcodeado. No usar en prod (ya creado a mano).
+- Un alumno con asistencias históricas no se puede borrar (FK `PROTECT`). DRF devuelve 500 en vez de 409 — manejar `IntegrityError` en `AlumnoViewSet.destroy()` para respuesta limpia.
 
 ## Historial de fixes importantes
-- **2026-05-21** — Migración de datos + 2 mejoras + fixes de UI:
-  1. `migrar_tupac.py` (raíz del proyecto) importó el backup del IES Tupac Amaru
-     al schema `demo` — 233 alumnos, 1853 asistencias. Lee `db_2026-05-20.sqlite3`
-     de la raíz. Corrido en local y en prod.
-  2. Mejora "Colegio no encontrado" para subdominios no registrados + orden de
-     middleware (ver Arquitectura).
-  3. Campo `Cliente.whatsapp_activo` (Plan Premium): toggle/checkbox en el panel
-     del dueño + gate en `asistencia/tasks.py`. Migración `tenants/0002`.
-  4. Escáner: el input solo acepta 8 dígitos (DNI).
-  5. `/director/alumnos`: quitadas columnas Código/Estado; búsqueda por nombre
-     completo con espacios (`Concat`, por palabra) y DNI; filtro por
-     `GradoSeccion` exacta (id) en vez de por número de grado.
-- **2026-05-17** — Migración a usuarios por-tenant (ver sección de Arquitectura).
-- **2026-05-20** — Setup inicial de prod en yachayqr.com:
-  1. Creado `Cliente(public)` + `Dominio('yachayqr.com')` en BD (no existían → 404 en `/api/v1/plataforma/`).
-  2. Creado superuser `sicoa` en schema `public`.
-  3. Corregido dominio del colegio `iestacoasa` (`iestacoasa.localhost` → `iestacoasa.yachayqr.com`).
-  4. Fix del hardcode `.localhost` en `tenants/views.py` → ahora usa `TENANT_DOMAIN_SUFFIX`.
-  5. Configurada SSH deploy key del servidor a GitHub.
-  6. Commits `de9bf76` + `3519007` en `origin/main`.
+- **2026-05-29/30** — Sesión completa de mejoras y seguridad:
+  1. **Cierre automático de sesiones** (`asistencia/tasks.py`): tarea `cerrar_sesiones_expiradas` iterando todos los schemas. Beat schedule en `settings.py` cada 5 min.
+  2. **Landing**: favicon `PERFIL.png`, planes al inicio (2° sección), 3 tarjetas rediseñadas, secciones innecesarias eliminadas, CTA fondo blanco, emails reales, scroll suave con bounce, animaciones IntersectionObserver.
+  3. **Seguridad backend**: `validate_dni` + `validate_nombres/apellido_*` en `AlumnoSerializer`; CORS regex `.pe` → `.com`.
+  4. **Alumnos frontend**: `loading="lazy"` en avatares; paginación (100/página, botones Anterior/Siguiente, subtítulo "Mostrando X-Y de Z").
+  5. **Arquitectura escáner**: `CONN_MAX_AGE=60`, `actualizar_contadores()` atómico con `queryset.update()`, `transaction.atomic()` + savepoints en `EscaneoService.procesar()`, `CACHES` Redis en prod / LocMemCache en dev.
+  6. **Permisos HTTP**: `HorarioEscolarViewSet` → `get_permissions()` (lectura: todos; escritura: solo Director); `SesionDiariaViewSet` → `http_method_names` sin DELETE/PUT; `GestionAlumnos` DELETE → solo Director; `ColegioViewSet` → sin DELETE; webhook `@csrf_exempt`. Verificado con 11/11 tests HTTP.
+
+- **2026-05-21** — Dataset real + mejoras UI:
+  1. Importado IES Tupac Amaru: 233 alumnos, 1853 asistencias.
+  2. "Colegio no encontrado" JSON para subdominios no registrados.
+  3. `Cliente.whatsapp_activo` (Plan Premium) + gate en tasks.
+  4. Escáner: input solo acepta 8 dígitos.
+  5. `/director/alumnos`: búsqueda por nombre completo y DNI; filtro por sección exacta.
+
+- **2026-05-20** — Setup prod `yachayqr.com`: schema public + superuser `sicoa`; fix dominio `iestacoasa`; SSH deploy key; `TENANT_DOMAIN_SUFFIX`.
+
+- **2026-05-17** — Migración a usuarios por-tenant.
