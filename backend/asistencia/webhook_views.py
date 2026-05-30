@@ -2,6 +2,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
+@csrf_exempt
 def whatsapp_webhook(request):
     if request.method == 'GET':
         mode = request.GET.get('hub.mode')

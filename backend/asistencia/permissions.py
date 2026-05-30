@@ -64,4 +64,6 @@ class GestionAlumnos(BasePermission):
             return False
         if request.method in SAFE_METHODS:
             return p.es_director or p.es_auxiliar or p.es_psicologo
+        if request.method == 'DELETE':
+            return p.es_director
         return p.es_director or p.es_auxiliar

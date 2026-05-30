@@ -30,7 +30,7 @@ from .reportes import generar_excel, generar_pdf
 # ── Horario ───────────────────────────────────────────────────────
 
 class HorarioEscolarViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, UsuarioActivo]
+    permission_classes = [IsAuthenticated, EsDirector]
     serializer_class   = HorarioEscolarSerializer
     queryset           = HorarioEscolar.objects.all()
 
@@ -40,6 +40,7 @@ class HorarioEscolarViewSet(viewsets.ModelViewSet):
 class SesionDiariaViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, UsuarioActivo]
     serializer_class   = SesionDiariaSerializer
+    http_method_names  = ['get', 'post', 'head', 'options']
 
     def get_queryset(self):
         qs = SesionDiaria.objects.select_related('horario').order_by('-fecha')

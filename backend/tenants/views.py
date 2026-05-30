@@ -25,8 +25,11 @@ class ColegioViewSet(viewsets.ModelViewSet):
     - list/retrieve: ver colegios
     - create:        alta de colegio + Director inicial (en su schema)
     - toggle-activo: suspender / reactivar un colegio
+    DELETE deshabilitado: para suspender usar toggle-activo (no se puede
+    deshacer un DROP SCHEMA accidental).
     """
     permission_classes = [IsAuthenticated, EsDuenoPlataforma]
+    http_method_names  = ['get', 'post', 'put', 'patch', 'head', 'options']
     queryset = Cliente.objects.exclude(schema_name='public').order_by('-creado_en')
 
     def get_serializer_class(self):
