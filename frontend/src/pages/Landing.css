@@ -275,28 +275,6 @@
 }
 .lp-h2 em{ font-style:italic; color:var(--gold-deep); font-weight:500; }
 
-/* Pasos */
-.lp-steps{
-  display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
-  background:var(--border); border:1px solid var(--border);
-  border-radius:18px; overflow:hidden;
-}
-.lp-step{
-  background:var(--paper); padding:38px 32px;
-  transition:background .25s var(--ease);
-}
-.lp-step:hover{ background:#fcfdff; }
-.lp-step-n{
-  font-family:var(--fd); font-size:14px; font-weight:600;
-  color:var(--gold-deep); letter-spacing:.04em;
-}
-.lp-step-n::before{ content:'0'; }
-.lp-step h3{
-  font-family:var(--fd); font-size:21px; font-weight:600;
-  color:var(--ink); margin:16px 0 9px; letter-spacing:-.01em;
-}
-.lp-step p{ font-size:14.5px; line-height:1.7; color:var(--ink-mid); margin:0; }
-
 /* Features */
 .lp-feat-band{ background:var(--navy); color:#fff; position:relative; overflow:hidden; }
 .lp-feat-band::before{
@@ -330,22 +308,6 @@
 .lp-feat p{
   font-size:13.5px; line-height:1.68;
   color:rgba(255,255,255,.6); margin:0;
-}
-
-/* Principios / band oscuro angosto */
-.lp-principles{
-  display:grid; grid-template-columns:repeat(3,1fr);
-  gap:clamp(20px,3vw,40px);
-}
-.lp-pr{ border-left:2px solid var(--gold); padding-left:22px; }
-.lp-pr .k{
-  font-family:var(--fd); font-size:clamp(24px,2.6vw,32px);
-  font-weight:600; color:var(--ink); letter-spacing:-.01em;
-  font-variant-numeric:tabular-nums;
-}
-.lp-pr .v{
-  font-size:13px; line-height:1.6; color:var(--ink-mid);
-  margin-top:8px;
 }
 
 /* ── Planes / precios ──────────────────────────────────────────── */
@@ -439,10 +401,8 @@
 /* CTA final */
 .lp-cta{
   position:relative; overflow:hidden;
-  background:
-    radial-gradient(110% 140% at 85% 0%,#244a78 0%,transparent 55%),
-    linear-gradient(150deg,var(--navy-mid),var(--navy-deep));
-  color:#fff;
+  background:#fff;
+  color:var(--navy);
 }
 .lp-cta-inner{
   position:relative; z-index:2; max-width:880px; margin:0 auto;
@@ -451,19 +411,28 @@
 .lp-cta h2{
   font-family:var(--fd); font-weight:600;
   font-size:clamp(30px,4.4vw,52px); line-height:1.1;
-  letter-spacing:-.024em; margin:20px auto 18px; max-width:16ch;
+  letter-spacing:-.024em; color:var(--navy); margin:20px auto 18px; max-width:16ch;
 }
-.lp-cta h2 em{ font-style:italic; color:var(--gold); font-weight:500; }
+.lp-cta h2 em{ font-style:italic; color:var(--gold-deep); font-weight:500; }
 .lp-cta p{
-  font-size:16px; color:rgba(255,255,255,.62);
+  font-size:16px; color:#4a5568;
   max-width:48ch; margin:0 auto 38px; line-height:1.7;
 }
-.lp-cta::after{
-  content:''; position:absolute; inset:0;
-  background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 1.5px);
-  background-size:26px 26px;
-  -webkit-mask-image:radial-gradient(60% 60% at 50% 40%,#000,transparent);
-  mask-image:radial-gradient(60% 60% at 50% 40%,#000,transparent);
+/* Eyebrow gold sobre fondo blanco */
+.lp-cta .lp-eyebrow--light{ color:var(--gold-deep); }
+.lp-cta .lp-eyebrow--light::before{
+  background:linear-gradient(90deg,var(--gold-deep),transparent);
+}
+/* Botón WA con colores navy para fondo claro */
+.lp-cta .lp-btn-wa{
+  color:var(--navy);
+  background:rgba(15,42,76,.05);
+  border-color:rgba(15,42,76,.18);
+}
+.lp-cta .lp-btn-wa:hover{
+  background:rgba(15,42,76,.09);
+  border-color:rgba(15,42,76,.30);
+  transform:translateY(-2px);
 }
 
 /* ── Footer ────────────────────────────────────────────────────── */
@@ -492,7 +461,7 @@
 @media (max-width:920px){
   .lp-hero-grid{ grid-template-columns:1fr; gap:56px; }
   .lp-scene{ order:-1; }
-  .lp-steps,.lp-grid,.lp-principles,.lp-planes-grid{ grid-template-columns:1fr; }
+  .lp-grid,.lp-planes-grid{ grid-template-columns:1fr; }
   .lp-h1{ max-width:none; }
 }
 @media (max-width:560px){
