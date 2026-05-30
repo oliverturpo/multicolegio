@@ -204,3 +204,11 @@ CELERY_TIMEZONE           = 'America/Lima'
 CELERY_TASK_TRACK_STARTED = True
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 WHATSAPP_VERIFY_TOKEN = config('WHATSAPP_VERIFY_TOKEN', default='')
+
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'cerrar-sesiones-expiradas': {
+        'task': 'asistencia.tasks.cerrar_sesiones_expiradas',
+        'schedule': crontab(minute='*/5'),
+    },
+}
