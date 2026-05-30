@@ -60,12 +60,6 @@ const WA = () => (
   </svg>
 )
 
-const PASOS = [
-  { n: '1', t: 'Un carnet, un código', d: 'Cada alumno recibe su carnet con código de barras y QR basado en su DNI. Se imprime desde el sistema, listo en PDF.' },
-  { n: '2', t: 'Escaneo en la puerta', d: 'El auxiliar escanea al ingresar. El sistema marca Presente o Tardanza según el horario del colegio, sin papel.' },
-  { n: '3', t: 'El apoderado se entera', d: 'Al cerrar la sesión del día, los padres de ausentes y tardanzas reciben un WhatsApp automático.' },
-]
-
 const FEATURES = [
   { t: 'Escaneo en segundos', d: 'La sesión del día se abre sola con el primer escaneo. Sin configuración diaria.',
     i: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3M21 21v-3" /></> },
@@ -223,23 +217,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── CÓMO FUNCIONA ───────────────────────────────────── */}
-      <section className="lp-section" id="como-funciona">
-        <div className="lp-section-head">
-          <span className="lp-eyebrow">Cómo funciona</span>
-          <h2 className="lp-h2">Tres pasos entre la <em>puerta</em> y el apoderado.</h2>
-        </div>
-        <div className="lp-steps">
-          {PASOS.map((p) => (
-            <article className="lp-step" key={p.n}>
-              <div className="lp-step-n">{p.n}</div>
-              <h3>{p.t}</h3>
-              <p>{p.d}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
       {/* ── FEATURES ────────────────────────────────────────── */}
       <section className="lp-feat-band">
         <div className="lp-section">
@@ -257,28 +234,6 @@ export default function Landing() {
                 <p>{f.d}</p>
               </article>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRINCIPIOS ──────────────────────────────────────── */}
-      <section className="lp-section">
-        <div className="lp-section-head">
-          <span className="lp-eyebrow">Por qué YachayQR</span>
-          <h2 className="lp-h2">Diseñado para no fallar a las <em>7:30 a.m.</em></h2>
-        </div>
-        <div className="lp-principles">
-          <div className="lp-pr">
-            <div className="k">1 escaneo</div>
-            <div className="v">Un solo gesto por alumno. La sesión del día se abre y se cierra sola.</div>
-          </div>
-          <div className="lp-pr">
-            <div className="k">Aislado</div>
-            <div className="v">Cada colegio en su propio schema y subdominio. Datos que nunca se mezclan.</div>
-          </div>
-          <div className="lp-pr">
-            <div className="k">Sin papel</div>
-            <div className="v">El registro, las justificaciones y el aviso al hogar, todo digital.</div>
           </div>
         </div>
       </section>
