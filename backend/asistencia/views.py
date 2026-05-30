@@ -30,9 +30,15 @@ from .reportes import generar_excel, generar_pdf
 # ── Horario ───────────────────────────────────────────────────────
 
 class HorarioEscolarViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, EsDirector]
-    serializer_class   = HorarioEscolarSerializer
-    queryset           = HorarioEscolar.objects.all()
+    serializer_class = HorarioEscolarSerializer
+    queryset         = HorarioEscolar.objects.all()
+
+    def get_permissions(self):
+        # Lectura (GET/HEAD/OPTIONS): cualquier usuario activo autenticado.
+        # Escritura (POST/PUT/PATCH/DELETE): solo Director.
+        if self.request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return [IsAuthenticated(), UsuarioActivo()]
+        return [IsAuthenticated(), EsDirector()]
 
 
 # ── Sesión diaria ─────────────────────────────────────────────────

@@ -105,15 +105,17 @@ DATABASES = {
 
 DATABASE_ROUTERS = ['django_tenants.routers.TenantSyncRouter']
 
-# --- Caché (Redis) — compartido entre workers Gunicorn ---
-# Usar DB 1 para caché (DB 0 queda para Celery).
-# Permite que el throttle de DRF sea efectivo entre todos los workers.
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://localhost:6379/0').replace('/0', '/1'),
+# --- Caché ---
+# Dev (DEBUG=True): LocMemCache por proceso — suficiente sin Redis local.
+# Prod (DEBUG=False): RedisCache compartido entre workers Gunicorn, así
+# el throttle de DRF cuenta correctamente entre todos los procesos.
+if not DEBUG:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': config('REDIS_URL', default='redis://localhost:6379/0').replace('/0', '/1'),
+        }
     }
-}
 
 # --- CORS (permite que React se comunique con Django) ---
 # Host base (panel del dueño y atajo demo).
