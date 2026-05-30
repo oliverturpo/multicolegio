@@ -99,10 +99,21 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD'),
         'HOST': config('DB_HOST', default='localhost'),
         'PORT': config('DB_PORT', default='5432'),
+        'CONN_MAX_AGE': 60,  # reutiliza conexiones hasta 60 s por worker
     }
 }
 
 DATABASE_ROUTERS = ['django_tenants.routers.TenantSyncRouter']
+
+# --- Caché (Redis) — compartido entre workers Gunicorn ---
+# Usar DB 1 para caché (DB 0 queda para Celery).
+# Permite que el throttle de DRF sea efectivo entre todos los workers.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': config('REDIS_URL', default='redis://localhost:6379/0').replace('/0', '/1'),
+    }
+}
 
 # --- CORS (permite que React se comunique con Django) ---
 # Host base (panel del dueño y atajo demo).
@@ -117,7 +128,7 @@ CORS_ALLOWED_ORIGINS = [
 # CORS la llamada del frontend del colegio a su propia API.
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r'^http://[a-z0-9-]+\.localhost:(5173|5174)$',
-    r'^https://[a-z0-9-]+\.yachayqr\.pe$',
+    r'^https://[a-z0-9-]+\.yachayqr\.com$',
 ]
 
 # --- Django REST Framework ---

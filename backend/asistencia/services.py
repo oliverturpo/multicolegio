@@ -11,7 +11,7 @@ Responsabilidades:
 - Crear el registro de asistencia
 """
 from dataclasses import dataclass
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 from colegios.models import Alumno
@@ -81,41 +81,45 @@ class EscaneoService:
         self.usuario = usuario
 
     def procesar(self, codigo: str, metodo: str) -> ResultadoEscaneo:
-        sesion = self._obtener_o_abrir_sesion()
-        alumno = self._buscar_alumno(codigo)
+        with transaction.atomic():
+            sesion = self._obtener_o_abrir_sesion()
+            alumno = self._buscar_alumno(codigo)
 
-        asistencia_existente = self._asistencia_del_dia(alumno)
-        if asistencia_existente:
+            asistencia_existente = self._asistencia_del_dia(alumno)
+            if asistencia_existente:
+                return ResultadoEscaneo(
+                    alumno=alumno,
+                    asistencia=asistencia_existente,
+                    sesion=sesion,
+                    ya_registrado=True,
+                )
+
+            if metodo == Asistencia.MetodoRegistro.MANUAL:
+                self._verificar_fraude(sesion, alumno)
+
+            try:
+                # Savepoint interior: el IntegrityError por doble escaneo
+                # no aborta la transacción externa (requerido por PostgreSQL).
+                with transaction.atomic():
+                    asistencia = self._registrar(sesion, alumno, metodo)
+            except IntegrityError:
+                existente = self._asistencia_del_dia(alumno)
+                if existente:
+                    return ResultadoEscaneo(
+                        alumno=alumno, asistencia=existente,
+                        sesion=sesion, ya_registrado=True,
+                    )
+                raise
+
+            sesion.actualizar_contadores()
+            sesion.refresh_from_db()
+
             return ResultadoEscaneo(
                 alumno=alumno,
-                asistencia=asistencia_existente,
+                asistencia=asistencia,
                 sesion=sesion,
-                ya_registrado=True,
+                ya_registrado=False,
             )
-
-        if metodo == Asistencia.MetodoRegistro.MANUAL:
-            self._verificar_fraude(sesion, alumno)
-
-        try:
-            asistencia = self._registrar(sesion, alumno, metodo)
-        except IntegrityError:
-            # Doble escaneo casi simultáneo: ya existe el registro del día.
-            existente = self._asistencia_del_dia(alumno)
-            if existente:
-                return ResultadoEscaneo(
-                    alumno=alumno, asistencia=existente,
-                    sesion=sesion, ya_registrado=True,
-                )
-            raise
-        sesion.actualizar_contadores()
-        sesion.refresh_from_db()
-
-        return ResultadoEscaneo(
-            alumno=alumno,
-            asistencia=asistencia,
-            sesion=sesion,
-            ya_registrado=False,
-        )
 
     # ── Pasos privados ────────────────────────────────────────────
 
@@ -154,17 +158,18 @@ class EscaneoService:
             )
 
         try:
-            return SesionDiaria.objects.create(
-                horario=horario,
-                fecha=hoy,
-                estado=SesionDiaria.Estado.ABIERTA,
-                hora_apertura_real=hora_actual,
-                total_alumnos=Alumno.objects.filter(estado='ACTIVO').count(),
-                abierta_por=self.usuario,
-            )
+            # Savepoint: si otro worker ya creó la sesión (fecha unique),
+            # el IntegrityError no aborta la transacción exterior.
+            with transaction.atomic():
+                return SesionDiaria.objects.create(
+                    horario=horario,
+                    fecha=hoy,
+                    estado=SesionDiaria.Estado.ABIERTA,
+                    hora_apertura_real=hora_actual,
+                    total_alumnos=Alumno.objects.filter(estado='ACTIVO').count(),
+                    abierta_por=self.usuario,
+                )
         except IntegrityError:
-            # Carrera: otro escaneo simultáneo ya abrió la sesión de hoy
-            # (fecha es unique). Reusar la existente.
             sesion = SesionDiaria.objects.get(fecha=hoy)
             if sesion.estado == SesionDiaria.Estado.CERRADA:
                 raise SesionCerradaError()

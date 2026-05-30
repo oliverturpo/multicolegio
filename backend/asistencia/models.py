@@ -73,13 +73,18 @@ class SesionDiaria(models.Model):
             ausentes    = Count('id', filter=Q(estado='AUSENTE')),
             justificados= Count('id', filter=Q(estado='JUSTIFICADO')),
         )
-        self.total_presentes   = stats['presentes']
-        self.total_tardanzas   = stats['tardanzas']
-        self.total_ausentes    = stats['ausentes']
-        self.total_justificados= stats['justificados']
-        self.save(update_fields=[
+        # UPDATE atómico: una sola sentencia SQL sin read-modify-write.
+        # Dos workers concurrentes calculan el mismo aggregate y escriben
+        # el mismo valor → idempotente, sin lost-update.
+        SesionDiaria.objects.filter(pk=self.pk).update(
+            total_presentes   = stats['presentes']    or 0,
+            total_tardanzas   = stats['tardanzas']    or 0,
+            total_ausentes    = stats['ausentes']     or 0,
+            total_justificados= stats['justificados'] or 0,
+        )
+        self.refresh_from_db(fields=[
             'total_presentes', 'total_tardanzas',
-            'total_ausentes', 'total_justificados'
+            'total_ausentes', 'total_justificados',
         ])
 
 
