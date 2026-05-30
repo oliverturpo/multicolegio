@@ -59,12 +59,6 @@ const WA = () => (
     <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 2.1.55 4.06 1.6 5.83L2 22l4.4-1.15a9.9 9.9 0 0 0 5.64 1.74h.01c5.46 0 9.91-4.45 9.91-9.91a9.84 9.84 0 0 0-2.9-7.02A9.84 9.84 0 0 0 12.04 2Zm0 18.13a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-2.6.68.7-2.54-.2-.32a8.2 8.2 0 0 1-1.26-4.39c0-4.54 3.7-8.23 8.24-8.23 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.69 8.24-8.23 8.24Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.39.11-.51.11-.11.25-.29.37-.43.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.42h-.47c-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.28Z" />
   </svg>
 )
-const Check = () => (
-  <svg className="lp-plan-check" width="18" height="18" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-)
 
 const PASOS = [
   { n: '1', t: 'Un carnet, un código', d: 'Cada alumno recibe su carnet con código de barras y QR basado en su DNI. Se imprime desde el sistema, listo en PDF.' },
@@ -132,7 +126,7 @@ export default function Landing() {
                 target="_blank" rel="noopener noreferrer">
                 <WA /> WhatsApp directo
               </a>
-              <a className="lp-btn-ghost" href="#como-funciona">Ver cómo funciona</a>
+              <a className="lp-btn-ghost" href="#planes">Ver planes</a>
             </div>
           </div>
 
@@ -162,6 +156,72 @@ export default function Landing() {
       <p className="lp-trust">
         Ya usado por colegios en la región <strong>Puno, Perú</strong>
       </p>
+
+      {/* ── PLANES ──────────────────────────────────────────── */}
+      <section className="lp-section lp-section--planes" id="planes">
+        <div className="lp-planes-head">
+          <div className="lp-planes-title">PLANES</div>
+          <div className="lp-planes-rule" />
+        </div>
+        <div className="lp-planes-grid">
+
+          <article className="lp-tarjeta">
+            <div className="lp-tarjeta-tag">PLAN</div>
+            <div className="lp-tarjeta-nombre">GRATUITO</div>
+            <div className="lp-tarjeta-sub">PARA EMPEZAR</div>
+            <ul className="lp-tarjeta-rows">
+              <li><span>Registro de asistencia</span><span>Incluido</span></li>
+              <li><span>Carnets PDF</span><span>Incluido</span></li>
+              <li><span>Reportes Excel y PDF</span><span>Incluido</span></li>
+              <li><span>Alumnos ilimitados</span><span>Incluido</span></li>
+            </ul>
+            <p className="lp-tarjeta-nota">* Sin costo de configuración</p>
+            <a className="lp-tarjeta-cta lp-btn-ghost"
+              href="mailto:hola@yachayqr.com?subject=Quiero%20el%20plan%20Gratuito%20de%20YachayQR">
+              Empezar gratis <Arrow />
+            </a>
+          </article>
+
+          <article className="lp-tarjeta lp-tarjeta--premium">
+            <div className="lp-tarjeta-badge">Recomendado</div>
+            <div className="lp-tarjeta-tag">PLAN</div>
+            <div className="lp-tarjeta-nombre">PREMIUM</div>
+            <div className="lp-tarjeta-sub">CON WHATSAPP</div>
+            <ul className="lp-tarjeta-rows">
+              <li><span>Todo el plan Gratuito</span><span>Incluido</span></li>
+              <li><span>Notif. WhatsApp automáticas</span><span>Activado</span></li>
+              <li><span>Reportes con apoderado/teléfono</span><span>Incluido</span></li>
+            </ul>
+            <div className="lp-tarjeta-precio">
+              <span className="lp-tarjeta-monto">S/ 49.90</span>
+              <span className="lp-tarjeta-per">/ mes</span>
+            </div>
+            <a className="lp-tarjeta-cta lp-btn"
+              href="mailto:hola@yachayqr.com?subject=Quiero%20el%20plan%20Premium%20de%20YachayQR">
+              Quiero Premium <Arrow />
+            </a>
+          </article>
+
+          <article className="lp-tarjeta">
+            <div className="lp-tarjeta-tag">PLAN</div>
+            <div className="lp-tarjeta-nombre">ENTERPRISE</div>
+            <div className="lp-tarjeta-sub">REDES DE COLEGIOS</div>
+            <ul className="lp-tarjeta-rows">
+              <li><span>Multi-colegio</span><span>Incluido</span></li>
+              <li><span>Soporte prioritario</span><span>Incluido</span></li>
+              <li><span>Personalización</span><span>Incluido</span></li>
+            </ul>
+            <div className="lp-tarjeta-precio">
+              <span className="lp-tarjeta-monto lp-tarjeta-monto--consultar">Consultar</span>
+            </div>
+            <a className="lp-tarjeta-cta lp-btn-ghost"
+              href="mailto:hola@yachayqr.com?subject=Plan%20Enterprise%20YachayQR">
+              Hablar con el equipo <Arrow />
+            </a>
+          </article>
+
+        </div>
+      </section>
 
       {/* ── CÓMO FUNCIONA ───────────────────────────────────── */}
       <section className="lp-section" id="como-funciona">
@@ -198,43 +258,6 @@ export default function Landing() {
               </article>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── PLANES ──────────────────────────────────────────── */}
-      <section className="lp-section" id="planes">
-        <div className="lp-section-head">
-          <span className="lp-eyebrow">Planes</span>
-          <h2 className="lp-h2">Empieza gratis. Crece cuando <em>lo necesites</em>.</h2>
-        </div>
-        <div className="lp-plans">
-          <article className="lp-plan">
-            <div className="lp-plan-name">Gratuito</div>
-            <p className="lp-plan-desc">Todo lo esencial para controlar la asistencia desde el primer día.</p>
-            <ul className="lp-plan-list">
-              <li><Check /> Registro de asistencia por escaneo</li>
-              <li><Check /> Carnets en PDF con código de barras y QR</li>
-              <li><Check /> Reportes exportables en Excel y PDF</li>
-            </ul>
-            <a className="lp-plan-cta lp-btn-ghost"
-              href="mailto:hola@yachayqr.com?subject=Quiero%20el%20plan%20Gratuito%20de%20YachayQR">
-              Empezar gratis
-            </a>
-          </article>
-          <article className="lp-plan lp-plan--premium">
-            <div className="lp-plan-badge">Recomendado</div>
-            <div className="lp-plan-name">Premium</div>
-            <p className="lp-plan-desc">El control completo, con aviso automático al hogar.</p>
-            <ul className="lp-plan-list">
-              <li><Check /> Todo lo del plan Gratuito</li>
-              <li><Check /> Notificaciones automáticas por WhatsApp a los apoderados</li>
-              <li><Check /> Aviso de tardanzas e inasistencias al cierre del día</li>
-            </ul>
-            <a className="lp-plan-cta lp-btn"
-              href="mailto:hola@yachayqr.com?subject=Quiero%20el%20plan%20Premium%20de%20YachayQR">
-              Quiero Premium <Arrow />
-            </a>
-          </article>
         </div>
       </section>
 

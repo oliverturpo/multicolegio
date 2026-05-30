@@ -349,47 +349,92 @@
 }
 
 /* ── Planes / precios ──────────────────────────────────────────── */
-.lp-plans{
-  display:grid; grid-template-columns:repeat(2,1fr);
-  gap:24px; max-width:860px;
+.lp-section--planes{ padding-top:clamp(56px,7vw,96px); }
+.lp-planes-head{ text-align:center; margin-bottom:48px; }
+.lp-planes-title{
+  font-family:var(--fd); font-size:clamp(34px,4.2vw,54px); font-weight:700;
+  letter-spacing:-.022em; color:var(--navy); line-height:1;
 }
-.lp-plan{
+.lp-planes-rule{
+  width:52px; height:3px; margin:16px auto 0;
+  background:linear-gradient(90deg,var(--gold),var(--gold-deep));
+  border-radius:99px;
+}
+.lp-planes-grid{
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:22px; max-width:1060px; margin:0 auto;
+}
+.lp-tarjeta{
   position:relative; display:flex; flex-direction:column;
   background:var(--paper); border:1px solid var(--border);
-  border-radius:18px; padding:38px 34px;
+  border-radius:16px; padding:34px 30px;
+  box-shadow:0 4px 18px -8px rgba(15,42,76,.09);
   transition:transform .25s var(--ease),box-shadow .25s var(--ease);
 }
-.lp-plan--premium{
-  border-color:var(--gold);
-  box-shadow:0 26px 54px -30px rgba(245,158,11,.5);
+.lp-tarjeta--premium{
+  border:2px solid var(--gold);
+  box-shadow:0 22px 50px -20px rgba(245,158,11,.42);
 }
-.lp-plan--premium:hover{ transform:translateY(-4px); }
-.lp-plan-badge{
-  position:absolute; top:-13px; right:28px;
+.lp-tarjeta--premium:hover{
+  transform:translateY(-4px);
+  box-shadow:0 30px 58px -20px rgba(245,158,11,.52);
+}
+.lp-tarjeta-badge{
+  position:absolute; top:-13px; right:24px;
   background:linear-gradient(135deg,var(--gold),var(--gold-deep));
-  color:var(--navy-deep); font-size:11px; font-weight:800;
-  letter-spacing:.08em; text-transform:uppercase;
-  padding:6px 14px; border-radius:999px;
-  box-shadow:0 8px 20px -8px rgba(251,191,36,.7);
+  color:var(--navy-deep); font-size:10.5px; font-weight:800;
+  letter-spacing:.1em; text-transform:uppercase;
+  padding:5px 13px; border-radius:999px;
+  box-shadow:0 6px 18px -6px rgba(251,191,36,.7);
 }
-.lp-plan-name{
-  font-family:var(--fd); font-size:24px; font-weight:600;
-  color:var(--ink); letter-spacing:-.01em;
+.lp-tarjeta-tag{
+  font-size:10px; font-weight:800; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--ink-soft); margin-bottom:5px;
 }
-.lp-plan-desc{
-  font-size:13.5px; line-height:1.6; color:var(--ink-mid);
-  margin:9px 0 24px;
+.lp-tarjeta-nombre{
+  font-family:var(--fd); font-size:clamp(24px,2.4vw,30px); font-weight:700;
+  color:var(--navy); letter-spacing:-.022em; line-height:1;
 }
-.lp-plan-list{
-  list-style:none; padding:0; margin:0 0 30px;
-  display:grid; gap:14px;
+.lp-tarjeta-sub{
+  font-size:10.5px; font-weight:800; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--gold-deep); margin:7px 0 22px;
 }
-.lp-plan-list li{
-  display:flex; gap:11px; align-items:flex-start;
-  font-size:14px; line-height:1.45; color:var(--ink);
+.lp-tarjeta-rows{
+  list-style:none; padding:0; margin:0 0 20px; flex:1;
 }
-.lp-plan-check{ flex:0 0 auto; margin-top:1px; color:var(--gold-deep); }
-.lp-plan-cta{ margin-top:auto; align-self:flex-start; }
+.lp-tarjeta-rows li{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 0; border-bottom:1px solid var(--border); gap:12px;
+  font-size:13.5px;
+}
+.lp-tarjeta-rows li:last-child{ border-bottom:none; }
+.lp-tarjeta-rows li span:first-child{ color:var(--ink-mid); }
+.lp-tarjeta-rows li span:last-child{
+  font-weight:700; color:var(--navy); white-space:nowrap;
+}
+.lp-tarjeta-nota{
+  font-size:11.5px; color:var(--ink-soft); margin:0 0 20px;
+}
+.lp-tarjeta-precio{
+  display:flex; align-items:baseline; gap:6px; margin-bottom:22px;
+}
+.lp-tarjeta-monto{
+  font-family:var(--fd); font-size:clamp(28px,2.8vw,36px); font-weight:700;
+  color:var(--gold-deep); letter-spacing:-.02em;
+}
+.lp-tarjeta-monto--consultar{
+  font-size:clamp(22px,2.2vw,28px); color:var(--navy);
+}
+.lp-tarjeta-per{
+  font-size:13px; font-weight:600; color:var(--ink-soft);
+}
+/* Ghost button en fondo claro (tarjetas) */
+.lp-tarjeta-cta.lp-btn-ghost{
+  color:var(--navy); border-bottom-color:var(--border);
+}
+.lp-tarjeta-cta.lp-btn-ghost:hover{
+  color:var(--gold-deep); border-color:var(--gold-deep);
+}
 
 /* CTA final */
 .lp-cta{
@@ -447,7 +492,7 @@
 @media (max-width:920px){
   .lp-hero-grid{ grid-template-columns:1fr; gap:56px; }
   .lp-scene{ order:-1; }
-  .lp-steps,.lp-grid,.lp-principles,.lp-plans{ grid-template-columns:1fr; }
+  .lp-steps,.lp-grid,.lp-principles,.lp-planes-grid{ grid-template-columns:1fr; }
   .lp-h1{ max-width:none; }
 }
 @media (max-width:560px){
