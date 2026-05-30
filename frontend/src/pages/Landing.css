@@ -153,6 +153,22 @@
   transition:color .2s,border-color .2s;
 }
 .lp-btn-ghost:hover{ color:#fff; border-color:var(--gold); }
+/* Botón "Ver planes" con flecha rebotando */
+.lp-scroll-cue{
+  display:inline-flex; align-items:center; gap:7px;
+  background:none; border:none; cursor:pointer; padding:6px 2px;
+  font-family:var(--fb); font-size:14px; font-weight:600;
+  color:var(--gold); letter-spacing:.01em;
+}
+.lp-scroll-cue:hover{ color:#fff; }
+.lp-bounce-arr{
+  display:inline-block; font-size:16px; line-height:1;
+  animation:lp-bounce 1.6s ease-in-out infinite;
+}
+@keyframes lp-bounce{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(5px); }
+}
 /* Botón WhatsApp — sobre fondo navy (hero y CTA final) */
 .lp-btn-wa{
   display:inline-flex; align-items:center; gap:9px;
@@ -471,9 +487,30 @@
   .lp-footer{ flex-direction:column; align-items:flex-start; }
 }
 
+/* ── Animación de entrada en tarjetas de Planes ────────────────── */
+/* Estado inicial: oculto + desplazado según posición */
+.lp-planes-grid .lp-tarjeta{
+  opacity:0;
+  transition:opacity .5s ease-out, transform .5s ease-out, box-shadow .25s;
+}
+.lp-planes-grid .lp-tarjeta:nth-child(1){ transform:translateX(-40px); }
+.lp-planes-grid .lp-tarjeta:nth-child(2){ transform:translateY(30px); }
+.lp-planes-grid .lp-tarjeta:nth-child(3){ transform:translateX(40px); }
+/* Estado visible (clase añadida por IntersectionObserver) */
+.lp-planes-grid .lp-tarjeta.visible{
+  opacity:1; transform:none;
+}
+/* Hover de Premium sigue funcionando tras la entrada */
+.lp-tarjeta--premium.visible:hover{
+  transform:translateY(-4px);
+  box-shadow:0 30px 58px -20px rgba(245,158,11,.52);
+}
+
 /* Respeta a quien pide menos movimiento */
 @media (prefers-reduced-motion:reduce){
   .lp *{ animation:none !important; transition:none !important; }
   .lp-hero-copy > *,.lp-scene{ opacity:1; transform:none; }
   .lp-beam,.lp-ping{ display:none; }
+  /* Tarjetas siempre visibles sin animación */
+  .lp-planes-grid .lp-tarjeta{ opacity:1; transform:none; }
 }

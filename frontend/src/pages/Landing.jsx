@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Landing.css'
 import anversoImg from '../assets/anverso.png'
@@ -75,10 +76,40 @@ const FEATURES = [
     i: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M8 13h8M8 17h5" /></> },
 ]
 
+/* delays por tarjeta: izquierda=0ms, centro=120ms, derecha=0ms */
+const CARD_DELAYS = [0, 120, 0]
+
 export default function Landing() {
-  const navigate = useNavigate()
+  const navigate  = useNavigate()
+  const planesRef = useRef(null)
   const irAlPanel = () => navigate('/plataforma/login')
   const year = new Date().getFullYear()
+
+  /* ── Scroll suave a Planes */
+  const irAPlanes = () =>
+    document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth' })
+
+  /* ── Animación de entrada en tarjetas de Planes */
+  useEffect(() => {
+    const grid = planesRef.current
+    if (!grid) return
+    const cards = Array.from(grid.querySelectorAll('.lp-tarjeta'))
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+          const i = cards.indexOf(entry.target)
+          setTimeout(() => entry.target.classList.add('visible'), CARD_DELAYS[i] ?? 0)
+          observer.unobserve(entry.target)
+        })
+      },
+      { threshold: 0.15 }
+    )
+
+    cards.forEach((card) => observer.observe(card))
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <div className="lp">
@@ -113,14 +144,17 @@ export default function Landing() {
               su propio espacio aislado. Sin cuadernos, sin dudas.
             </p>
             <div className="lp-cta-row">
-              <a className="lp-btn" href="mailto:hola@yachayqr.com?subject=Quiero%20una%20demo%20de%20YachayQR">
+              <a className="lp-btn"
+                href="mailto:cliver20oliver23@gmail.com?subject=Solicitud%20de%20demo%20YachayQR">
                 Solicitar una demo <Arrow />
               </a>
-              <a className="lp-btn-wa" href="https://wa.me/51927609290"
+              <a className="lp-btn-wa" href="https://wa.me/51963366849"
                 target="_blank" rel="noopener noreferrer">
                 <WA /> WhatsApp directo
               </a>
-              <a className="lp-btn-ghost" href="#planes">Ver planes</a>
+              <button className="lp-scroll-cue" onClick={irAPlanes}>
+                Ver planes <span className="lp-bounce-arr" aria-hidden="true">↓</span>
+              </button>
             </div>
           </div>
 
@@ -157,7 +191,7 @@ export default function Landing() {
           <div className="lp-planes-title">PLANES</div>
           <div className="lp-planes-rule" />
         </div>
-        <div className="lp-planes-grid">
+        <div className="lp-planes-grid" ref={planesRef}>
 
           <article className="lp-tarjeta">
             <div className="lp-tarjeta-tag">PLAN</div>
@@ -171,7 +205,7 @@ export default function Landing() {
             </ul>
             <p className="lp-tarjeta-nota">* Sin costo de configuración</p>
             <a className="lp-tarjeta-cta lp-btn-ghost"
-              href="mailto:hola@yachayqr.com?subject=Quiero%20el%20plan%20Gratuito%20de%20YachayQR">
+              href="mailto:cliver20oliver23@gmail.com?subject=Quiero%20plan%20Gratuito%20YachayQR">
               Empezar gratis <Arrow />
             </a>
           </article>
@@ -191,7 +225,7 @@ export default function Landing() {
               <span className="lp-tarjeta-per">/ mes</span>
             </div>
             <a className="lp-tarjeta-cta lp-btn"
-              href="mailto:hola@yachayqr.com?subject=Quiero%20el%20plan%20Premium%20de%20YachayQR">
+              href="mailto:cliver20oliver23@gmail.com?subject=Quiero%20Plan%20Premium%20YachayQR">
               Quiero Premium <Arrow />
             </a>
           </article>
@@ -209,7 +243,7 @@ export default function Landing() {
               <span className="lp-tarjeta-monto lp-tarjeta-monto--consultar">Consultar</span>
             </div>
             <a className="lp-tarjeta-cta lp-btn-ghost"
-              href="mailto:hola@yachayqr.com?subject=Plan%20Enterprise%20YachayQR">
+              href="mailto:cliver20oliver23@gmail.com?subject=Consulta%20Plan%20Enterprise%20YachayQR">
               Hablar con el equipo <Arrow />
             </a>
           </article>
@@ -250,10 +284,11 @@ export default function Landing() {
             Escríbenos y coordinamos una demostración.
           </p>
           <div className="lp-cta-row" style={{ justifyContent: 'center' }}>
-            <a className="lp-btn" href="mailto:hola@yachayqr.com?subject=Quiero%20YachayQR%20para%20mi%20colegio">
+            <a className="lp-btn"
+              href="mailto:cliver20oliver23@gmail.com?subject=Quiero%20YachayQR%20para%20mi%20colegio">
               Hablar con el equipo <Arrow />
             </a>
-            <a className="lp-btn-wa" href="https://wa.me/51927609290"
+            <a className="lp-btn-wa" href="https://wa.me/51963366849"
               target="_blank" rel="noopener noreferrer">
               <WA /> WhatsApp directo
             </a>
@@ -268,10 +303,11 @@ export default function Landing() {
           <small>Control de asistencia escolar · Perú</small>
         </div>
         <div className="lp-footer-links">
-          <a href="mailto:hola@yachayqr.com" style={{ color: 'rgba(255,255,255,.42)', textDecoration: 'none' }}>
+          <a href="mailto:cliver20oliver23@gmail.com"
+            style={{ color: 'rgba(255,255,255,.42)', textDecoration: 'none' }}>
             Contacto
           </a>
-          <a href="https://wa.me/51927609290" target="_blank" rel="noopener noreferrer"
+          <a href="https://wa.me/51963366849" target="_blank" rel="noopener noreferrer"
             style={{ color: 'rgba(255,255,255,.42)', textDecoration: 'none' }}>
             WhatsApp
           </a>
