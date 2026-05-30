@@ -34,7 +34,7 @@ const FORM_GRADO_INICIAL = {
 // ── Avatar ────────────────────────────────────────────────────────
 function Avatar({ nombre, foto, size = 36 }) {
   if (foto) {
-    return <img src={foto} alt={nombre} className="alu-avatar-img" style={{ width: size, height: size }} />
+    return <img src={foto} alt={nombre} loading="lazy" className="alu-avatar-img" style={{ width: size, height: size }} />
   }
   return (
     <div className="alu-avatar" style={{ width: size, height: size }}>
@@ -56,6 +56,9 @@ export default function DirectorAlumnos() {
   const [buscar,      setBuscar]      = useState('')
   const [filtroGrado, setFiltroGrado] = useState('')
   const [total,       setTotal]       = useState(0)
+  const [pagina,      setPagina]      = useState(1)
+
+  const PAGE_SIZE = 100
 
   const [panelAbierto, setPanelAbierto] = useState(false)
   const [modoEdicion,  setModoEdicion]  = useState(false)
@@ -87,6 +90,7 @@ export default function DirectorAlumnos() {
       const params = {}
       if (buscar)      params.buscar        = buscar
       if (filtroGrado) params.grado_seccion = filtroGrado
+      if (pagina > 1)  params.page          = pagina
       const { data } = await api.get('/colegios/alumnos/', { params })
       const lista = data.results ?? data
       setAlumnos(lista)
@@ -96,7 +100,7 @@ export default function DirectorAlumnos() {
     } finally {
       setCargando(false)
     }
-  }, [buscar, filtroGrado])
+  }, [buscar, filtroGrado, pagina])
 
   const cargarGrados = useCallback(async () => {
     try {
@@ -110,7 +114,7 @@ export default function DirectorAlumnos() {
 
   const handleBuscar = (v) => {
     clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => setBuscar(v), 400)
+    timerRef.current = setTimeout(() => { setBuscar(v); setPagina(1) }, 400)
   }
 
   // ── Abrir panel ────────────────────────────────────────────────
@@ -322,7 +326,9 @@ export default function DirectorAlumnos() {
         <div>
           <h1 className="alu-title">Alumnos</h1>
           <p className="alu-subtitle">
-            {cargando ? 'Cargando…' : `${total} alumno${total !== 1 ? 's' : ''} registrado${total !== 1 ? 's' : ''}`}
+            {cargando ? 'Cargando…' : total === 0 ? 'Sin alumnos registrados' :
+            `Mostrando ${(pagina - 1) * PAGE_SIZE + 1}–${Math.min(pagina * PAGE_SIZE, total)} de ${total} alumno${total !== 1 ? 's' : ''}`
+          }
           </p>
         </div>
         <button className="alu-btn-primary" onClick={abrirNuevo}>
@@ -343,7 +349,7 @@ export default function DirectorAlumnos() {
         </div>
         <div className="alu-filter-wrap">
           <IcoFilter />
-          <select className="alu-select" value={filtroGrado} onChange={e => setFiltroGrado(e.target.value)}>
+          <select className="alu-select" value={filtroGrado} onChange={e => { setFiltroGrado(e.target.value); setPagina(1) }}>
             <option value="">Todas las secciones</option>
             {grados.map(g => (
               <option key={g.id} value={g.id}>
@@ -418,6 +424,29 @@ export default function DirectorAlumnos() {
           </table>
         )}
       </div>
+
+      {/* PAGINACIÓN */}
+      {!cargando && total > PAGE_SIZE && (
+        <div className="alu-paginacion">
+          <button
+            className="alu-pag-btn"
+            onClick={() => setPagina(p => p - 1)}
+            disabled={pagina === 1}
+          >
+            ← Anterior
+          </button>
+          <span className="alu-pag-info">
+            Página {pagina} de {Math.ceil(total / PAGE_SIZE)}
+          </span>
+          <button
+            className="alu-pag-btn"
+            onClick={() => setPagina(p => p + 1)}
+            disabled={pagina >= Math.ceil(total / PAGE_SIZE)}
+          >
+            Siguiente →
+          </button>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════
           PANEL LATERAL

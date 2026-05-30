@@ -790,3 +790,43 @@
   .alu-ico-txt { display: none; }
   .alu-ico-btn svg { flex-shrink: 0; }
 }
+
+/* ── Paginación ────────────────────────────────────────────────── */
+.alu-paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 0 4px;
+}
+.alu-pag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: #fff;
+  color: var(--navy, #0f2a4c);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+}
+.alu-pag-btn:hover:not(:disabled) {
+  background: var(--navy, #0f2a4c);
+  border-color: var(--navy, #0f2a4c);
+  color: #fff;
+}
+.alu-pag-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.alu-pag-info {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-mid, #475569);
+  min-width: 110px;
+  text-align: center;
+}
