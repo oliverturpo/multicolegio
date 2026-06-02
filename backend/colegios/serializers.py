@@ -60,6 +60,32 @@ class AlumnoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'codigo_barras', 'creado_en']
 
+    def validate_dni(self, value):
+        value = value.strip()
+        if not value.isdigit():
+            raise serializers.ValidationError('El DNI debe contener solo dígitos.')
+        if len(value) != 8:
+            raise serializers.ValidationError('El DNI debe tener exactamente 8 dígitos.')
+        return value
+
+    def validate_nombres(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Este campo no puede estar vacío.')
+        return value
+
+    def validate_apellido_paterno(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Este campo no puede estar vacío.')
+        return value
+
+    def validate_apellido_materno(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Este campo no puede estar vacío.')
+        return value
+
     def get_foto_url(self, obj):
         request = self.context.get('request')
         if obj.foto and request:
