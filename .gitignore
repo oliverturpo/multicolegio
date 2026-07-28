@@ -91,6 +91,7 @@ skills-lock.json
 
 # ===== Documentación / referencias internas que NO van al repo =====
 _ref_lectora/
+raspberry.md
 
 # ===== Archivos de coverage / tests =====
 .coverage
