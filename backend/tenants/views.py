@@ -2,8 +2,10 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django_tenants.utils import schema_context
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import (
+    action, api_view, authentication_classes, permission_classes,
+)
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -12,6 +14,28 @@ from .permissions import EsDuenoPlataforma
 from .serializers import (
     PlataformaTokenSerializer, ColegioSerializer, CrearColegioSerializer,
 )
+
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def colegios_publicos(request):
+    """
+    Lista pública de colegios activos, para el selector de la app móvil.
+    Corre en el schema public (dominio principal). Devuelve el dominio de
+    cada colegio para que la app arme la URL de su API.
+    """
+    data = []
+    for c in (Cliente.objects.filter(activo=True)
+              .exclude(schema_name='public').order_by('nombre')):
+        dom = c.domains.filter(is_primary=True).first() or c.domains.first()
+        if dom:
+            data.append({
+                'nombre':  c.nombre,
+                'schema':  c.schema_name,
+                'dominio': dom.domain,
+            })
+    return Response(data)
 
 
 class PlataformaTokenView(TokenObtainPairView):

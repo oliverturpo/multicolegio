@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.hashers import make_password, check_password
 
 
 class Apoderado(models.Model):
@@ -21,6 +22,12 @@ class Apoderado(models.Model):
     parentesco         = models.CharField(max_length=10, choices=Parentesco.choices)
     creado_en          = models.DateTimeField(auto_now_add=True)
 
+    # --- Acceso del apoderado a la app móvil ---
+    # `password` vacío = nunca ingresó: la clave inicial es su propio DNI.
+    # Al ingresar por primera vez se le obliga a definir una contraseña propia.
+    password              = models.CharField(max_length=128, blank=True, default='')
+    debe_cambiar_password = models.BooleanField(default=True)
+
     class Meta:
         verbose_name = 'Apoderado'
         verbose_name_plural = 'Apoderados'
@@ -31,6 +38,22 @@ class Apoderado(models.Model):
     @property
     def nombre_completo(self):
         return f'{self.nombres} {self.apellido_paterno} {self.apellido_materno}'
+
+    # --- Autenticación (usado por la app de apoderados) ---
+    def set_password(self, raw):
+        self.password = make_password(raw)
+        self.debe_cambiar_password = False
+
+    def check_password(self, raw):
+        """Valida la contraseña. Si nunca definió una, la clave inicial es su DNI."""
+        if not self.password:
+            return raw == self.dni
+        return check_password(raw, self.password)
+
+    @property
+    def is_authenticated(self):
+        # Permite que DRF trate a un Apoderado como request.user autenticado.
+        return True
 
 
 class GradoSeccion(models.Model):
