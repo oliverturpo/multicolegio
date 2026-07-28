@@ -59,7 +59,9 @@ with tenant_context(demo):
 
 ## Producción (yachayqr.com)
 
-Servidor: **DigitalOcean** (`64.23.175.14`), Ubuntu, código en `/var/www/yachayqr/`.
+Servidor: **DigitalOcean** (`137.184.236.181`), Ubuntu 24.04, SFO3, plan $6/mes (1GB RAM + 2GB swap), código en `/var/www/yachayqr/`.
+
+> **Reconstruido el 2026-07-28.** El droplet viejo (`64.23.175.14`) se destruyó por saldo vencido. Todo se levantó de cero: repo clonado, Postgres/Redis/nginx, dataset Tupac reimportado desde `db_2026-05-20.sqlite3` (recuperado del historial de git), tenants `public`+`demo`, SSL y servicios systemd. Superuser dueño: `sicoa` / `Sicoa2026!`.
 
 ### Dominios y tenants registrados en prod (BD)
 | Dominio | Schema | Notas |
@@ -68,41 +70,28 @@ Servidor: **DigitalOcean** (`64.23.175.14`), Ubuntu, código en `/var/www/yachay
 | `demo.yachayqr.com` | `demo` | Colegio de prueba. Dataset real IESTA Tupac Amaru (233 alumnos). |
 | `iestacoasa.yachayqr.com` | `iestacoasa` | Primer colegio real (IESTA-COASA). |
 
-- DNS wildcard: `*.yachayqr.com` → `64.23.175.14`.
-- SSL: Let's Encrypt wildcard cubre `*.yachayqr.com` + `yachayqr.com` (`/etc/letsencrypt/live/yachayqr.com/`).
+- DNS (Cloudflare, "Solo DNS"): `yachayqr.com` y `*.yachayqr.com` → `137.184.236.181`.
+- SSL: Let's Encrypt para `yachayqr.com` + `demo.yachayqr.com` (`/etc/letsencrypt/live/yachayqr.com/`). Renovación automática (certbot). **No es wildcard**: si se crea un colegio nuevo, agregar su subdominio con `certbot --nginx -d <sub>.yachayqr.com --expand`.
 - El `Cliente(schema_name='public')` y el `Dominio('yachayqr.com')` se crearon manualmente. Si se reconstruye la BD, **hay que recrearlos**.
 
 ### Servicios (systemd) y comandos comunes
 | Servicio | Qué hace | Reiniciar |
 |---|---|---|
-| `yachayqr.service` | Gunicorn (Django) en `127.0.0.1:8000`, 3 workers | `systemctl restart yachayqr` |
+| `yachayqr.service` | Gunicorn (Django) en `127.0.0.1:8000`, 2 workers | `systemctl restart yachayqr` |
 | `yachayqr-celery.service` | Worker Celery (tareas async, WhatsApp) | `systemctl restart yachayqr-celery` |
 | `yachayqr-celery-beat.service` | Celery Beat (cierre automático de sesiones cada 5 min) | `systemctl restart yachayqr-celery-beat` |
 | `nginx` | Proxy + SSL + sirve `frontend/dist/` | `systemctl reload nginx` |
 
-**Pendiente en servidor:** crear `/etc/systemd/system/yachayqr-celery-beat.service`:
-```ini
-[Unit]
-Description=YachayQR Celery Beat
-After=network.target
+Los 3 `.service` (gunicorn, celery, celery-beat) ya están creados y habilitados en el servidor nuevo (`/etc/systemd/system/`). Arrancan solos al bootear.
 
-[Service]
-User=root
-WorkingDirectory=/var/www/yachayqr/backend
-ExecStart=/var/www/yachayqr/backend/venv/bin/celery -A config beat --loglevel=info
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-Luego: `systemctl daemon-reload && systemctl enable --now yachayqr-celery-beat`
+**Backup automático de la BD:** `/usr/local/bin/backup_yachayqr.sh` corre por cron diario a las 3AM → `pg_dump` gzip a `/var/backups/yachayqr/`, retiene 7 días.
 
 Nginx config: `/etc/nginx/sites-enabled/yachayqr`. Sirve `/api/` → `proxy_pass http://127.0.0.1:8000`; resto → SPA del `frontend/dist/`. El header `Host` se pasa intacto.
 
 ### Variables del `.env` de prod (`/var/www/yachayqr/backend/.env`)
 ```
 DEBUG=False
-ALLOWED_HOSTS=.yachayqr.com,yachayqr.com,64.23.175.14
+ALLOWED_HOSTS=.yachayqr.com,yachayqr.com,137.184.236.181
 TENANT_DOMAIN_SUFFIX=yachayqr.com
 TENANT_LOGIN_URL_TEMPLATE=https://{sub}.yachayqr.com/login
 DB_NAME=yachayqr  /  DB_USER=yachayqr  /  DB_HOST=localhost
@@ -227,7 +216,9 @@ Referencia: `frontend/src/components/Layout/Layout.css`
 - Throttle `EscaneoThrottle`: 120/min por usuario (compartido entre workers en prod gracias a Redis cache).
 
 ## Configuración pendiente (requiere acción manual)
-- [ ] **Celery Beat en servidor**: crear el `.service` y habilitar (ver sección Producción).
+- [x] **Celery Beat en servidor**: `.service` creado y habilitado en el droplet nuevo (2026-07-28).
+- [ ] **Fotos de alumnos (demo)**: no estaban en el backup reimportado — recargar si se necesitan.
+- [ ] **Colegio `iestacoasa`**: se perdió al reconstruir; recrear si hace falta.
 - [ ] **WhatsApp API**: `config/whatsapp.py` listo. Falta `WHATSAPP_TOKEN` y `WHATSAPP_PHONE_ID` en `.env` de prod.
 - [ ] **Turnstile en prod**: poner `TURNSTILE_SECRET` en `.env` de prod para activarlo.
 - [x] Carnet PDF: `colegios/carnet.py` (foto + barcode + QR, 4 por hoja). Falta logo del colegio.
