@@ -96,7 +96,10 @@ TENANT_DOMAIN_SUFFIX=yachayqr.com
 TENANT_LOGIN_URL_TEMPLATE=https://{sub}.yachayqr.com/login
 DB_NAME=yachayqr  /  DB_USER=yachayqr  /  DB_HOST=localhost
 REDIS_URL=redis://localhost:6379/0
-TURNSTILE_SECRET=                                # vacío = omite Turnstile
+TURNSTILE_SECRET=<secret real>                   # configurado 2026-07-29 (widget "YachayQR Login")
+WHATSAPP_TOKEN=<token permanente EAA...>         # System User "Employee", no caduca
+WHATSAPP_PHONE_ID=1116476101550897               # número +51 927 609 290
+WHATSAPP_VERIFY_TOKEN=c32f5d64dcfe2c6faeea52a68e448598
 ```
 Con `DEBUG=False`, `CACHES` usa `RedisCache` (DB 1) automáticamente — el throttle de DRF se comparte entre todos los workers. En dev (DEBUG=True) usa `LocMemCache` sin necesitar Redis.
 
@@ -256,12 +259,59 @@ Referencia: `frontend/src/components/Layout/Layout.css`
 - `CONN_MAX_AGE=60` en `DATABASES` — conexiones persistentes por worker.
 - Throttle `EscaneoThrottle`: 120/min por usuario (compartido entre workers en prod gracias a Redis cache).
 
+## Cloudflare Turnstile (login) — CONFIGURADO ✅ (2026-07-29)
+
+El widget de Turnstile protege los logins (`frontend/src/pages/Login.jsx` y `pages/plataforma/Login.jsx`). Antes usaba la key de PRUEBA de Cloudflare (`1x00000000000000000000AA`, fallback en el código) y el login se veía roto. Ahora usa llaves reales:
+- **Widget en Cloudflare:** "YachayQR Login". **Site Key (pública):** `0x4AAAAAADTOqmECePp1BI59`. Secret Key vive solo en el `.env` del servidor.
+- **Frontend:** `frontend/.env.production` **en el servidor** (gitignored) con `VITE_TURNSTILE_SITE_KEY=<site key>`. Se hornea en el build (`npm run build`). ⚠️ NO poner `VITE_API_URL` ahí — la URL del API se deriva del host en runtime (si no, se rompe el multi-tenant).
+- **Backend:** `TURNSTILE_SECRET=<secret>` en `/var/www/yachayqr/backend/.env`. `config/turnstile.py` valida contra Cloudflare (falla cerrado). Si el secret está vacío (dev) se omite.
+- ⚠️ **Hostnames del widget:** en Cloudflare el widget debe incluir `yachayqr.com` (cubre subdominios `demo.`, `iestacoasa.`). Confirmar si se agrega un colegio nuevo.
+
+## Integración WhatsApp / Meta — LISTA pero BLOQUEADA POR PAGO ⚠️ (2026-07-29)
+
+El código (`config/whatsapp.py`) envía plantillas vía **Meta Cloud API**. Todo está cableado y probado; **lo único que falla es el pago de la tarjeta** (ver abajo). El código es correcto — el día que una tarjeta pase el cargo, entrega solo.
+
+**Credenciales (todas en `/var/www/yachayqr/backend/.env`, NO en git):**
+- `WHATSAPP_PHONE_ID=1116476101550897` — número business **+51 927 609 290** ("YachayQr", CONNECTED, calidad GREEN, CLOUD_API, TIER_250).
+- `WHATSAPP_TOKEN` — token **permanente** de Usuario del sistema "Employee" (no caduca). Permisos: `whatsapp_business_messaging` + `whatsapp_business_management` + `business_management`.
+- `WHATSAPP_VERIFY_TOKEN=c32f5d64dcfe2c6faeea52a68e448598` — para el webhook.
+
+**IDs de Meta:** App ID `998741499211127` · Business Portfolio (Business ID) `2212358902828134` · WABA ID (asset_id) `3628620677275857` · System User ID `61589931013622`.
+
+**Plantillas aprobadas en la WABA (es_PE, UTILITY, APPROVED):**
+- `yachayqr_ausente` → "{{1}} no asistió a clases hoy {{2}}. Comuníquese con {{3}}."
+- `yachayqr_tardanza` → "{{1}} llegó tarde a clases hoy {{2}}. Hora: {{3}}."
+- (`hello_world` también, pero solo funciona desde números de PRUEBA, no desde el real.)
+
+**Webhook:** endpoint `POST/GET /api/v1/whatsapp/webhook/` (`asistencia/webhook_views.py`) — loggea estados de entrega (`[WA-STATUS]`) vía `logger('whatsapp.webhook')`, leíbles con `journalctl -u yachayqr`. El handshake GET valida con `WHATSAPP_VERIFY_TOKEN`. **Falta suscribirlo en Meta** (WhatsApp → Configuración → Webhook → Callback `https://yachayqr.com/api/v1/whatsapp/webhook/` + token, suscribir campo `messages`) — opcional, solo para ver estados en vivo.
+
+**⛔ EL BLOQUEO (por qué no entrega):**
+- La cuenta está **RESTRINGIDA**: Meta no pudo hacer la **retención temporal** (authorization hold) en la tarjeta → sin fondos suficientes / tarjeta rechazada. Mensaje de Meta: *"Cuenta de WhatsApp Business restringida — No hemos podido procesar tu pago."*
+- Al enviar, Meta responde `messages[0].message_status: accepted` pero **NO entrega** (queda encolado) mientras la cuenta esté restringida.
+- Tarjetas registradas: Visa ···9991 (default, falló el hold), Visa ···3134. Interbank da "La tarjeta no se puede utilizar" → falta activar **compras internacionales/recurrentes** en la app del banco, o usar tarjeta de crédito.
+- Saldo real: solo **0,41 S/** (céntimos). El problema NO es el monto, es que la tarjeta no pasa el hold de verificación.
+- `business_verification_status: rejected` (afecta escalar a producción; no bloquea el primer envío — el bloqueo es el pago).
+
+**Cómo probar un envío manual (cuando el pago esté al día):**
+```bash
+ssh root@137.184.236.181 'cd /var/www/yachayqr/backend
+TOKEN=$(grep ^WHATSAPP_TOKEN= .env | cut -d= -f2)
+curl -s -X POST "https://graph.facebook.com/v19.0/1116476101550897/messages" \
+  -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" \
+  -d "{\"messaging_product\":\"whatsapp\",\"to\":\"51963366849\",\"type\":\"template\",\"template\":{\"name\":\"yachayqr_tardanza\",\"language\":{\"code\":\"es_PE\"},\"components\":[{\"type\":\"body\",\"parameters\":[{\"type\":\"text\",\"text\":\"Xandy Madizon\"},{\"type\":\"text\",\"text\":\"29/07/2026\"},{\"type\":\"text\",\"text\":\"08:15\"}]}]}}"'
+```
+Número de prueba del apoderado: **51963366849** (formato Meta = código país sin `+`).
+
+**Pendiente WhatsApp (cuando haya pago):**
+- **OTP "olvidé contraseña"** (app apoderados): falta crear **1 plantilla de categoría AUTENTICACIÓN** en Meta + cablear el flujo (generar código → enviar → verificar). El token actual ya sirve para eso.
+- Seguridad: token WhatsApp y Secret de Turnstile son secretos — solo en `.env` del servidor, nunca a git.
+
 ## Configuración pendiente (requiere acción manual)
 - [x] **Celery Beat en servidor**: `.service` creado y habilitado en el droplet nuevo (2026-07-28).
 - [ ] **Fotos de alumnos (demo)**: no estaban en el backup reimportado — recargar si se necesitan.
 - [ ] **Colegio `iestacoasa`**: se perdió al reconstruir; recrear si hace falta.
-- [ ] **WhatsApp API**: `config/whatsapp.py` listo. Falta `WHATSAPP_TOKEN` y `WHATSAPP_PHONE_ID` en `.env` de prod.
-- [ ] **Turnstile en prod**: poner `TURNSTILE_SECRET` en `.env` de prod para activarlo.
+- [x] **WhatsApp API**: token permanente + phone_id ya en `.env` de prod (2026-07-29). Plantillas aprobadas. **BLOQUEADO por pago** — ver sección "Integración WhatsApp / Meta" abajo.
+- [x] **Turnstile en prod**: Site Key + Secret Key reales configurados y desplegados (2026-07-29). Ver sección "Cloudflare Turnstile" abajo.
 - [x] Carnet PDF: `colegios/carnet.py` (foto + barcode + QR, 4 por hoja). Falta logo del colegio.
 
 ## Landing pública (`frontend/src/pages/Landing.jsx`)
