@@ -177,6 +177,47 @@ Referencia: `frontend/src/components/Layout/Layout.css`
 - **Landing pública** — `yachayqr.com` (schema public)
 - **Cierre automático de sesiones** — Celery Beat cada 5 min
 
+## App móvil de apoderados + publicación en Play Store
+
+> **Meta del curso ISW2:** publicar la app en Google Play Store. **Deadline: martes 4 ago 2026.**
+
+### App (`mobile/`, Expo SDK 54)
+- 5 pantallas: elegir colegio → login (DNI) → cambiar clave (1er ingreso) → mis hijos → asistencias. Navegación por estado (sin react-navigation). Paleta navy/gold. Apunta a **prod** (`yachayqr.com`).
+- Backend apoderados ya desplegado y probado en `demo.yachayqr.com`: login por DNI (clave inicial = DNI, cambio obligatorio 1er ingreso), mis-hijos, asistencias. Endpoint público `colegios-publicos`. DNI de prueba: `06345456`.
+- Correr en Expo Go: `cd mobile && npx expo start`.
+
+### Build EAS (genera el archivo para Play Store)
+- **Cuenta Expo (gratis):** `cliverturopo` (Personal). Proyecto EAS: `@cliverturopo/yachayqr-apoderados`, projectId `6b0a6909-8d32-427a-a163-58405dfdd887`.
+- `eas-cli` instalado como devDependency en `mobile/`. Login: `./node_modules/.bin/eas login` (interactivo, vía navegador).
+- **`app.json`**: name "YachayQR Apoderados", package Android `com.yachayqr.apoderados`, versión remota (EAS maneja `versionCode`).
+- **`eas.json`**: perfil `preview` → APK instalable (demo directa, sin Play Store); perfil `production` → `.aab` (Play Store).
+- **Keystore:** generado y guardado por EAS (credenciales remotas). No borrarlo — firma la app para siempre.
+- Comando build `.aab`: `cd mobile && ./node_modules/.bin/eas build -p android --profile production`. Primer build fue interactivo (crear proyecto + keystore = "Yes"). **`.aab` ya generado con éxito** (link de artifact en el dashboard de Expo; caduca, re-buildear si se necesita).
+- Cada cambio futuro = nuevo build → resubir. En **Testing Interno** las actualizaciones son inmediatas (no re-testea 14 días).
+
+### Política de privacidad (obligatoria para la ficha)
+- Archivo: `frontend/public/privacidad.html` → servido en **https://yachayqr.com/privacidad.html** (ya vivo). Esa URL va en la ficha de Play Store.
+
+### Cuenta Google Play Console ($25, pago único) — EN VERIFICACIÓN
+- Cuenta **Personal** a nombre de **Cliver Turpo**, ID `5389279162739461254`, correo `cliver20oliver23@gmail.com`. **Pagada.**
+- Estado de verificaciones (al 29 jul 2026):
+  - ✅ **Identidad (DNI)** → enviada, **EN REVISIÓN de Google** (tarda algunos días). Nota: se ingresó una dirección distinta a la del DNI; Google verifica sobre todo autenticidad del documento + nombre, así que probablemente pase. Si rechazan por eso, reenviar con la dirección del DNI.
+  - ✅ **Dispositivo Android** (app Play Console en el celular).
+  - ⏳ **Teléfono** → se desbloquea solo cuando aprueben la identidad. La dirección/teléfono se editan en **Configuración → Detalles de la cuenta**.
+- **Realidad Play Store:** cuentas personales nuevas requieren **test cerrado de 14 días** (12 testers) antes de habilitar *Producción* (tienda abierta). Camino para el deadline: **Testing Interno** → link de Play Store instalable de inmediato. Producción full ~2 semanas después (regla de Google, no nuestra).
+
+### Textos de la ficha (listos)
+- Nombre: **YachayQR Apoderados**
+- Descripción corta (≤80): *Consulta la asistencia escolar de tus hijos en tiempo real.*
+- Descripción completa: *YachayQR Apoderados te permite consultar de forma rápida y segura el registro de asistencia de tus hijos en su institución educativa. Inicia sesión con tu DNI y revisa si tu hijo llegó puntual, tarde o estuvo ausente, con el historial completo de sus asistencias. Una herramienta simple y directa para mantenerte informado sobre la asistencia escolar de tu familia.*
+
+### PRÓXIMOS PASOS (al retomar)
+1. **Esperar aprobación de identidad de Google** (nada que hacer de nuestro lado hasta eso).
+2. Mientras tanto: **tomar capturas de pantalla** de la app en Expo Go (mín. 2, de celular) para la ficha — pantallas: elegir colegio, login, mis hijos, asistencias.
+3. Aprobada la cuenta: **crear la app** en Play Console → llenar ficha (textos arriba + URL de privacidad) → **subir el `.aab` a Testing Interno** → obtener link instalable.
+4. (Paralelo) arrancar el test cerrado de 14 días para Producción.
+5. (Pendiente aparte) cablear login de personal (director/auxiliar) en la app; Meta/WhatsApp OTP para "olvidé contraseña" cuando se pague billing.
+
 ## Horario escolar (demo)
 | Campo | Valor | Significado |
 |-------|-------|-------------|
