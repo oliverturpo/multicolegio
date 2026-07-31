@@ -206,34 +206,44 @@ El campo `Cliente.logo` (ya existía en el modelo) se sube desde el panel del du
 ### Build EAS (genera el archivo para Play Store)
 - **Cuenta Expo (gratis):** `cliverturopo` (Personal). Proyecto EAS: `@cliverturopo/yachayqr-apoderados`, projectId `6b0a6909-8d32-427a-a163-58405dfdd887`.
 - `eas-cli` instalado como devDependency en `mobile/`. Login: `./node_modules/.bin/eas login` (interactivo, vía navegador).
-- **`app.json`**: name "YachayQR Apoderados", package Android `com.yachayqr.apoderados`, versión remota (EAS maneja `versionCode`).
+- **`app.json`**: name "YachayQR Apoderados", package Android `com.yachayqr.apoderados`, `version` 1.0.0, `appVersionSource: remote` (EAS auto-incrementa `versionCode`, empezó en 1).
 - **`eas.json`**: perfil `preview` → APK instalable (demo directa, sin Play Store); perfil `production` → `.aab` (Play Store).
-- **Keystore:** generado y guardado por EAS (credenciales remotas). No borrarlo — firma la app para siempre.
-- Comando build `.aab`: `cd mobile && ./node_modules/.bin/eas build -p android --profile production`. Primer build fue interactivo (crear proyecto + keystore = "Yes"). **`.aab` ya generado con éxito** (link de artifact en el dashboard de Expo; caduca, re-buildear si se necesita).
-- Cada cambio futuro = nuevo build → resubir. En **Testing Interno** las actualizaciones son inmediatas (no re-testea 14 días).
+- **Keystore:** generado y guardado por EAS (`Build Credentials wxLy10N9_Q`, credenciales remotas). **No borrarlo** — firma la app para siempre; si cambia, Play Store rechaza la app como si fuera otra.
+- Comando build `.aab`: `cd mobile && ./node_modules/.bin/eas build -p android --profile production`. Ya no es interactivo (proyecto linkeado + keystore existe). El warning `EAS_BUILD_NO_EXPO_GO_WARNING` es inofensivo.
+- **EAS compila desde los archivos LOCALES** (no desde git): un build incluye los cambios guardados en `mobile/` aunque no estén commiteados.
+- **Regla de actualización:** solo cambios en `mobile/` obligan a nuevo `.aab` + resubir. Cambios en `backend/` o `frontend/` se despliegan al servidor y la app los consume en runtime (sin rebuild). Subir un `.aab` nuevo NO reobliga a llenar la ficha ni los cuestionarios (eso es de una sola vez).
 
-### Política de privacidad (obligatoria para la ficha)
-- Archivo: `frontend/public/privacidad.html` → servido en **https://yachayqr.com/privacidad.html** (ya vivo). Esa URL va en la ficha de Play Store.
+### Estado publicación Play Store — CONFIGURACIÓN COMPLETA ✅ (2026-07-31)
+**La app está PUBLICADA en Prueba Interna, instalable y funcionando contra prod.** Toda la configuración de Play Console está terminada. Solo falta (opcional) la Prueba Cerrada de 14 días para abrir Producción.
 
-### Cuenta Google Play Console ($25, pago único) — EN VERIFICACIÓN
-- Cuenta **Personal** a nombre de **Cliver Turpo**, ID `5389279162739461254`, correo `cliver20oliver23@gmail.com`. **Pagada.**
-- Estado de verificaciones (al 29 jul 2026):
-  - ✅ **Identidad (DNI)** → enviada, **EN REVISIÓN de Google** (tarda algunos días). Nota: se ingresó una dirección distinta a la del DNI; Google verifica sobre todo autenticidad del documento + nombre, así que probablemente pase. Si rechazan por eso, reenviar con la dirección del DNI.
-  - ✅ **Dispositivo Android** (app Play Console en el celular).
-  - ⏳ **Teléfono** → se desbloquea solo cuando aprueben la identidad. La dirección/teléfono se editan en **Configuración → Detalles de la cuenta**.
-- **Realidad Play Store:** cuentas personales nuevas requieren **test cerrado de 14 días** (12 testers) antes de habilitar *Producción* (tienda abierta). Camino para el deadline: **Testing Interno** → link de Play Store instalable de inmediato. Producción full ~2 semanas después (regla de Google, no nuestra).
+- **Cuenta Play Console** ($25 pagado): Personal, **Cliver Turpo**, ID `5389279162739461254`, `cliver20oliver23@gmail.com`. **Identidad APROBADA por Google** (ya no está en revisión).
+- **App creada:** package `com.yachayqr.apoderados`, idioma default es-419. Mientras Google no revise, los testers la ven como **"com.yachayqr.apoderados (unreviewed)"** (nombre temporal, normal).
+- **`.aab` en Prueba Interna:** build `67725f18-1972-464e-8f9f-d7bca1a11ae5`, versionCode 1 / 1.0.0, minSdk 24 (Android 7+). Artifact caduca — re-buildear si se necesita.
+- **Prueba Interna ACTIVA** con lista "Testers YachayQR" (1 correo: `cliver20oliver23@gmail.com`). Link instalable vía "Unirse desde la Web". Probado: instala y muestra los colegios. **Este es el entregable del curso.**
+- **Ficha completa:** textos (abajo) + ícono + gráfico de funciones + capturas (teléfono 4, tablet 7" 2, tablet 10" 2). Las capturas de tablet sirven para los 3 campos.
+- **Recursos gráficos generados** en `F:\SaaS\playstore\` (fuera de git): `icono_512.png` (QR real navy sobre tarjeta blanca + badge dorado con check) y `grafico_funciones_1024x500.png` (marca navy/gold). Generados con PIL + lib `qrcode`.
+- **Cuestionarios (todos hechos):**
+  - Política de privacidad → `https://yachayqr.com/privacidad.html`
+  - **Detalles de acceso** (Google necesita entrar a revisar) → credenciales EN INGLÉS. Apoderado de prueba en **demo de PROD**: DNI **`07821817`** / clave **`yachayqr2026`** (`debe_cambiar_password=False`), tiene 1 hija (Yamile Aguilar Accha). ⚠️ **NO reimportar el dataset demo ni cambiar esa clave hasta que Google termine de revisar**, o el revisor no podrá entrar.
+  - Anuncios → No. Gubernamental → No. Financiero → No. Salud → No.
+  - Clasificación de contenido → "El resto de tipos de app", todo No → **Para todos / PEGI 3**.
+  - Público objetivo → **solo "Mayores de 18 años"** (el usuario es el apoderado adulto, NO el niño; marcar rangos de menores mete la app en "Diseñado para familias" con reglas estrictas). Casilla de restringir menores → sin marcar.
+  - **Seguridad de los datos:** recopila **solo "ID de usuario"** (el DNI) — categoría Información personal. Recopilado ✅, Compartido ❌ (va solo a nuestro server, sin terceros), no efímero, obligatorio, propósito = Funciones de la app + Administración de la cuenta. Encriptado en tránsito (HTTPS) ✅. Método de cuenta = usuario+contraseña. La contraseña NO se declara (no hay categoría; es solo autenticación). Los nombres de hijos/asistencias NO se declaran (van del server al device, no se "recopilan").
+  - **URL de eliminación de cuenta** (obligatoria por tener login): `https://yachayqr.com/eliminar-cuenta.html` (`frontend/public/eliminar-cuenta.html`, creada 2026-07-31, mismo estilo que privacidad).
+  - Categoría → **Educación**. Contacto → correo/WhatsApp/web.
 
-### Textos de la ficha (listos)
+### Producción (tienda abierta) — PENDIENTE, opcional para el curso
+Requiere **Prueba Cerrada** (pista aparte de la interna) con **≥12 testers reales** que acepten, corriendo **≥14 días**. La Prueba Interna NO cuenta para ese reloj. Los 14 días son **una sola vez**; las actualizaciones posteriores NO reesperan. Para el deadline del curso basta la Prueba Interna (ya lista) — Producción es el extra.
+
+### Textos de la ficha (usados)
 - Nombre: **YachayQR Apoderados**
 - Descripción corta (≤80): *Consulta la asistencia escolar de tus hijos en tiempo real.*
 - Descripción completa: *YachayQR Apoderados te permite consultar de forma rápida y segura el registro de asistencia de tus hijos en su institución educativa. Inicia sesión con tu DNI y revisa si tu hijo llegó puntual, tarde o estuvo ausente, con el historial completo de sus asistencias. Una herramienta simple y directa para mantenerte informado sobre la asistencia escolar de tu familia.*
 
 ### PRÓXIMOS PASOS (al retomar)
-1. **Esperar aprobación de identidad de Google** (nada que hacer de nuestro lado hasta eso).
-2. Mientras tanto: **tomar capturas de pantalla** de la app en Expo Go (mín. 2, de celular) para la ficha — pantallas: elegir colegio, login, mis hijos, asistencias.
-3. Aprobada la cuenta: **crear la app** en Play Console → llenar ficha (textos arriba + URL de privacidad) → **subir el `.aab` a Testing Interno** → obtener link instalable.
-4. (Paralelo) arrancar el test cerrado de 14 días para Producción.
-5. (Pendiente aparte) cablear login de personal (director/auxiliar) en la app; Meta/WhatsApp OTP para "olvidé contraseña" cuando se pague billing.
+1. **Decisión pendiente:** arrancar o no la **Prueba Cerrada** (12 testers, 14 días) para abrir Producción. No urge para el curso.
+2. Cuando Google revise la app, el nombre "(unreviewed)" cambia a "YachayQR Apoderados". Recién ahí liberar la clave del apoderado de prueba `07821817`.
+3. (Pendiente aparte) cablear login de personal (director/auxiliar) en la app; Meta/WhatsApp OTP para "olvidé contraseña" cuando se pague billing.
 
 ## Horario escolar (demo)
 | Campo | Valor | Significado |
@@ -346,6 +356,12 @@ Estructura actual (orden de secciones):
 - Un alumno con asistencias históricas no se puede borrar (FK `PROTECT`). DRF devuelve 500 en vez de 409 — manejar `IntegrityError` en `AlumnoViewSet.destroy()` para respuesta limpia.
 
 ## Historial de fixes importantes
+- **2026-07-31** — SSL wildcard, logo por colegio y publicación en Play Store:
+  1. **SSL wildcard** (`*.yachayqr.com`): un colegio nuevo (`mgcj`, Martin Chambi) daba "sitio no seguro" porque el cert no era wildcard. Migrado de HTTP-01 a **DNS-01 con `certbot-dns-cloudflare`** (token CF en `/root/.secrets/cloudflare.ini`) + deploy hook para recargar nginx. Ahora cualquier subdominio nace con SSL válido. Ver sección "SSL".
+  2. **Logo por colegio** (commit `c181d6f`): campo `Cliente.logo` (ya existía, sin migración) cableado a API + panel del dueño + selector de la app. Endpoints `POST .../colegios/<id>/logo/` y `/quitar-logo/` (POST, no DELETE porque el ViewSet excluye ese verbo). Se descubrió que el urlconf público no servía `/media/` en dev — corregido. Ver sección "Logo del colegio".
+  3. **App móvil `EscogerColegio.js`**: pull-to-refresh + botón "Reintentar" para que un colegio recién creado aparezca sin reiniciar la app (antes el `fetch` era 1 sola vez al montar).
+  4. **Página `eliminar-cuenta.html`** (commit `026aab3`): requisito de Data Safety de Play Store.
+  5. **Publicación Play Store**: identidad aprobada, app creada, `.aab` en Prueba Interna instalable y funcionando, ficha + todos los cuestionarios completos. Ver sección "Estado publicación Play Store".
 - **2026-05-29/30** — Sesión completa de mejoras y seguridad:
   1. **Cierre automático de sesiones** (`asistencia/tasks.py`): tarea `cerrar_sesiones_expiradas` iterando todos los schemas. Beat schedule en `settings.py` cada 5 min.
   2. **Landing**: favicon `PERFIL.png`, planes al inicio (2° sección), 3 tarjetas rediseñadas, secciones innecesarias eliminadas, CTA fondo blanco, emails reales, scroll suave con bounce, animaciones IntersectionObserver.
