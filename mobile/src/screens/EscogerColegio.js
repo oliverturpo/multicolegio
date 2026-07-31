@@ -1,7 +1,7 @@
 import React from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, TextInput,
-  ActivityIndicator, StyleSheet,
+  View, Text, TouchableOpacity, ScrollView, TextInput, Image,
+  ActivityIndicator, RefreshControl, StyleSheet,
 } from 'react-native';
 import { Screen, Logo, Button, ErrorBox } from '../ui';
 import { C, iniciales } from '../theme';
@@ -12,22 +12,54 @@ export default function EscogerColegio({ onSelect }) {
   const [error, setError] = React.useState('');
   const [q, setQ] = React.useState('');
   const [sel, setSel] = React.useState(null);
+  const [refreshing, setRefreshing] = React.useState(false);
 
-  React.useEffect(() => {
-    getColegios()
-      .then((data) => setColegios(data))
-      .catch((e) => setError(e.message));
+  // Recarga la lista. Se llama al montar y al deslizar hacia abajo, para
+  // que un colegio recién dado de alta aparezca sin reiniciar la app.
+  const cargar = React.useCallback(async () => {
+    setError('');
+    try {
+      const data = await getColegios();
+      setColegios(data);
+      // Si el colegio elegido ya no está en la lista, deseleccionarlo.
+      setSel((prev) =>
+        prev && data.some((c) => c.dominio === prev.dominio) ? prev : null);
+    } catch (e) {
+      setError(e.message);
+    }
   }, []);
+
+  React.useEffect(() => { cargar(); }, [cargar]);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await cargar();
+    setRefreshing(false);
+  }, [cargar]);
 
   const lista = (colegios || []).filter((c) =>
     c.nombre.toLowerCase().includes(q.toLowerCase()));
 
   return (
     <Screen dark>
-      <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 30 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 24, paddingTop: 30 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={C.gold}
+            colors={[C.gold]}
+            progressBackgroundColor={C.navyMid}
+          />
+        }
+      >
         <Logo />
         <Text style={s.h1}>Bienvenido</Text>
-        <Text style={s.sub}>Selecciona tu colegio para continuar.</Text>
+        <Text style={s.sub}>
+          Selecciona tu colegio para continuar. Desliza hacia abajo para
+          actualizar la lista.
+        </Text>
 
         <View style={s.search}>
           <Text style={{ color: '#9db2cc' }}>🔍</Text>
@@ -45,6 +77,9 @@ export default function EscogerColegio({ onSelect }) {
         ) : null}
 
         <ErrorBox message={error} />
+        {error ? (
+          <Button title="Reintentar" onPress={cargar} />
+        ) : null}
 
         {lista.map((c) => {
           const on = sel?.dominio === c.dominio;
@@ -55,11 +90,15 @@ export default function EscogerColegio({ onSelect }) {
               onPress={() => setSel(c)}
               style={[s.school, on && s.schoolSel]}
             >
-              <View style={s.schoolIc}>
-                <Text style={{ color: C.gold, fontWeight: '800', fontSize: 15 }}>
-                  {iniciales(c.nombre)}
-                </Text>
-              </View>
+              {c.logo ? (
+                <Image source={{ uri: c.logo }} style={s.schoolIc} resizeMode="cover" />
+              ) : (
+                <View style={s.schoolIc}>
+                  <Text style={{ color: C.gold, fontWeight: '800', fontSize: 15 }}>
+                    {iniciales(c.nombre)}
+                  </Text>
+                </View>
+              )}
               <View style={{ flex: 1 }}>
                 <Text style={s.schoolN}>{c.nombre}</Text>
                 <Text style={s.schoolS}>{c.dominio}</Text>

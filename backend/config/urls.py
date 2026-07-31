@@ -19,7 +19,9 @@ public_urlpatterns = [
     path('api/v1/auth/verify-tenant/', verify_tenant,          name='verify-tenant'),
     path('api/v1/auth/refresh/', TokenRefreshView.as_view(),   name='token_refresh'),
     path('api/v1/auth/verify/',  TokenVerifyView.as_view(),    name='token_verify'),
-]
+    # En dev el logo de los colegios se sirve desde aquí: tanto el panel del
+    # dueño como la app móvil lo piden al host público. En prod lo sirve nginx.
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # ── URLs del schema de cada colegio ──────────────────────────────
 urlpatterns = [

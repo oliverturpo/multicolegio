@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { usePlataformaAuth } from '../../context/PlataformaAuthContext'
 import apiPlataforma from '../../services/apiPlataforma'
 import './Plataforma.css'
@@ -14,6 +14,21 @@ const IcoPlus = () => (
 const normSub = (s) =>
   s.toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^[0-9]+/, '').slice(0, 31)
 
+// Iniciales para el marcador de posición cuando el colegio no tiene logo.
+const iniciales = (nombre) =>
+  (nombre || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase()
+
+const LOGO_MAX_BYTES = 2 * 1024 * 1024
+const LOGO_TIPOS = ['image/png', 'image/jpeg', 'image/webp']
+
+// Valida en el navegador con las mismas reglas del backend, para dar el
+// error al instante en vez de tras subir 5 MB.
+const validarLogo = (file) => {
+  if (!LOGO_TIPOS.includes(file.type)) return 'El logo debe ser PNG, JPG o WEBP.'
+  if (file.size > LOGO_MAX_BYTES) return `El logo pesa ${Math.round(file.size / 1024)} KB. El máximo es 2048 KB.`
+  return ''
+}
+
 const FORM0 = {
   nombre: '', subdominio: '', email_contacto: '', telefono: '',
   admin_password: '', whatsapp_activo: false,
@@ -28,6 +43,19 @@ export default function PlataformaColegios() {
   const [error, setError]       = useState('')
   const [guardando, setGuardando] = useState(false)
   const [exito, setExito]       = useState(null)
+  const [logo, setLogo]         = useState(null)   // File elegido en el alta
+  const [subiendo, setSubiendo] = useState(null)   // id del colegio subiendo logo
+  const fileRowRef = useRef(null)                  // input oculto de la tabla
+  const filaLogoId = useRef(null)                  // fila que disparó ese input
+
+  // El preview del alta es un object URL: hay que revocarlo al cambiarlo.
+  const [logoPreview, setLogoPreview] = useState('')
+  useEffect(() => {
+    if (!logo) { setLogoPreview(''); return }
+    const url = URL.createObjectURL(logo)
+    setLogoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [logo])
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -41,7 +69,21 @@ export default function PlataformaColegios() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  const abrir = () => { setForm(FORM0); setError(''); setExito(null); setModal(true) }
+  const abrir = () => {
+    setForm(FORM0); setLogo(null); setError(''); setExito(null); setModal(true)
+  }
+
+  // Sube el logo de un colegio ya existente. Devuelve '' si salió bien.
+  const enviarLogo = async (id, file) => {
+    const fd = new FormData()
+    fd.append('logo', file)
+    try {
+      await apiPlataforma.post(`/plataforma/colegios/${id}/logo/`, fd)
+      return ''
+    } catch (err) {
+      return err.response?.data?.logo?.[0] || 'No se pudo subir el logo.'
+    }
+  }
 
   const crear = async (e) => {
     e.preventDefault()
@@ -50,7 +92,11 @@ export default function PlataformaColegios() {
       const { data } = await apiPlataforma.post('/plataforma/colegios/', {
         ...form, subdominio: normSub(form.subdominio),
       })
-      setExito({ ...data, password: form.admin_password })
+      // El colegio ya existe; el logo va aparte (multipart). Si falla, no se
+      // pierde el alta: se avisa y se puede reintentar desde la tabla.
+      let avisoLogo = ''
+      if (logo && data.colegio?.id) avisoLogo = await enviarLogo(data.colegio.id, logo)
+      setExito({ ...data, password: form.admin_password, avisoLogo })
       await cargar()
     } catch (err) {
       const d = err.response?.data
@@ -59,6 +105,36 @@ export default function PlataformaColegios() {
         d?.detail || 'No se pudo registrar el colegio.'
       )
     } finally { setGuardando(false) }
+  }
+
+  const quitarLogo = async (c) => {
+    if (!confirm(`¿Quitar el logo de "${c.nombre}"?`)) return
+    setSubiendo(c.id)
+    try {
+      await apiPlataforma.post(`/plataforma/colegios/${c.id}/quitar-logo/`)
+      await cargar()
+    } catch {
+      setError('No se pudo quitar el logo.')
+    } finally { setSubiendo(null) }
+  }
+
+  // Cambiar el logo desde la tabla: un único input oculto, reutilizado.
+  const pedirLogoFila = (c) => { filaLogoId.current = c.id; fileRowRef.current?.click() }
+
+  const onArchivoFila = async (e) => {
+    const file = e.target.files?.[0]
+    const id = filaLogoId.current
+    e.target.value = ''            // permite reelegir el mismo archivo
+    if (!file || !id) return
+
+    const invalido = validarLogo(file)
+    if (invalido) { setError(invalido); return }
+
+    setError(''); setSubiendo(id)
+    const fallo = await enviarLogo(id, file)
+    setSubiendo(null)
+    if (fallo) setError(fallo)
+    else await cargar()
   }
 
   const toggle = async (c) => {
@@ -124,7 +200,25 @@ export default function PlataformaColegios() {
             <div className="plat-empty">Aún no hay colegios. Registra el primero.</div>
           ) : lista.map((c) => (
             <div className="plat-row" key={c.id}>
-              <span className="plat-cole-nombre">{c.nombre}</span>
+              <div className="plat-cole">
+                {c.logo
+                  ? <img className="plat-logo" src={c.logo} alt={`Logo de ${c.nombre}`} />
+                  : <div className="plat-logo plat-logo--ph">{iniciales(c.nombre)}</div>}
+                <div style={{ minWidth: 0 }}>
+                  <span className="plat-cole-nombre">{c.nombre}</span>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button className="plat-logo-btn" disabled={subiendo === c.id}
+                      onClick={() => pedirLogoFila(c)}>
+                      {subiendo === c.id ? 'Subiendo…' : c.logo ? 'Cambiar logo' : 'Añadir logo'}
+                    </button>
+                    {c.logo && subiendo !== c.id && (
+                      <button className="plat-logo-btn" onClick={() => quitarLogo(c)}>
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
               <span className="plat-dom plat-col-dom">
                 {c.url_acceso
                   ? <a href={c.url_acceso} target="_blank" rel="noreferrer"
@@ -156,6 +250,11 @@ export default function PlataformaColegios() {
             </div>
           ))}
         </div>
+
+        {/* Un solo input oculto para toda la tabla; `filaLogoId` dice a qué
+            colegio pertenece el archivo elegido. */}
+        <input ref={fileRowRef} type="file" accept="image/png,image/jpeg,image/webp"
+          onChange={onArchivoFila} style={{ display: 'none' }} />
       </main>
 
       {modal && (
@@ -179,6 +278,12 @@ export default function PlataformaColegios() {
                   <div className="plat-ok-row"><span>Usuario</span><b>{exito.acceso?.usuario}</b></div>
                   <div className="plat-ok-row"><span>Contraseña</span><b>{exito.password}</b></div>
                 </div>
+                {exito.avisoLogo && (
+                  <div className="plat-error" style={{ marginTop: 12 }}>
+                    ⚠ El colegio se creó, pero el logo no se pudo subir: {exito.avisoLogo}
+                    {' '}Puedes reintentarlo con «Añadir logo» en la tabla.
+                  </div>
+                )}
                 <p className="plat-hint" style={{ margin: '12px 0 18px' }}>
                   Comparte estos datos con el colegio. Recomiéndale cambiar la contraseña.
                 </p>
@@ -221,6 +326,36 @@ export default function PlataformaColegios() {
                     onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))}
                     placeholder="+51 9..." />
                 </div>
+                <div className="plat-mf">
+                  <label>Logo del colegio (opcional)</label>
+                  <div className="plat-logo-pick">
+                    {logoPreview
+                      ? <img className="plat-logo" src={logoPreview} alt="Vista previa del logo" />
+                      : <div className="plat-logo plat-logo--ph">
+                          {iniciales(form.nombre) || '?'}
+                        </div>}
+                    <div>
+                      <input type="file" accept="image/png,image/jpeg,image/webp"
+                        disabled={guardando}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          const invalido = validarLogo(file)
+                          if (invalido) { setError(invalido); e.target.value = ''; return }
+                          setError(''); setLogo(file)
+                        }}
+                        style={{ fontSize: 12.5 }} />
+                      {logo && (
+                        <button type="button" className="plat-logo-clear"
+                          onClick={() => setLogo(null)}>Quitar</button>
+                      )}
+                      <span className="plat-hint" style={{ display: 'block' }}>
+                        PNG, JPG o WEBP · máx. 2 MB. Se ve en la app de apoderados.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="plat-mf">
                   <label>Contraseña del Director</label>
                   <input type="password" value={form.admin_password} required disabled={guardando}

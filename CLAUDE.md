@@ -68,10 +68,16 @@ Servidor: **DigitalOcean** (`137.184.236.181`), Ubuntu 24.04, SFO3, plan $6/mes 
 |---|---|---|
 | `yachayqr.com` | `public` | Panel del dueño. Superuser: `sicoa`. |
 | `demo.yachayqr.com` | `demo` | Colegio de prueba. Dataset real IESTA Tupac Amaru (233 alumnos). |
-| `iestacoasa.yachayqr.com` | `iestacoasa` | Primer colegio real (IESTA-COASA). |
+| `mgcj.yachayqr.com` | `mgcj` | Colegio "Martin Chambi" (creado 2026-07-31). |
+
+> `iestacoasa` ya **no existe** en la BD (se perdió al reconstruir el droplet). Los tenants reales en prod son los 3 de arriba.
 
 - DNS (Cloudflare, "Solo DNS"): `yachayqr.com` y `*.yachayqr.com` → `137.184.236.181`.
-- SSL: Let's Encrypt para `yachayqr.com` + `demo.yachayqr.com` (`/etc/letsencrypt/live/yachayqr.com/`). Renovación automática (certbot). **No es wildcard**: si se crea un colegio nuevo, agregar su subdominio con `certbot --nginx -d <sub>.yachayqr.com --expand`.
+- SSL: Let's Encrypt **wildcard** `yachayqr.com` + `*.yachayqr.com` (`/etc/letsencrypt/live/yachayqr.com/`). Desde 2026-07-31 **no hay que hacer nada al crear un colegio nuevo** — cualquier subdominio nace con SSL válido.
+  - Validación **DNS-01** vía `certbot-dns-cloudflare` (el wildcard no se puede emitir por HTTP-01). Token de API de Cloudflare (permiso `Zone–DNS–Edit`, sin TTL) en `/root/.secrets/cloudflare.ini` (chmod 600, **nunca a git**). Si el token se revoca, las renovaciones fallan y vuelve el "sitio no seguro".
+  - Como se usa `certonly` (no `--nginx`), certbot **no recarga nginx solo**: lo hace el deploy hook `/etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh`. Sin ese hook, tras renovar nginx seguiría sirviendo el cert viejo en memoria.
+  - Reemitir a mano: `certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini --dns-cloudflare-propagation-seconds 30 --cert-name yachayqr.com -d yachayqr.com -d '*.yachayqr.com' --expand`
+  - Verificar: `certbot renew --dry-run` (probado OK 2026-07-31).
 - El `Cliente(schema_name='public')` y el `Dominio('yachayqr.com')` se crearon manualmente. Si se reconstruye la BD, **hay que recrearlos**.
 
 ### Servicios (systemd) y comandos comunes
@@ -168,6 +174,14 @@ Referencia: `frontend/src/components/Layout/Layout.css`
 /plataforma/colegios         → Alta/suspensión de colegios (panel del dueño)
 ```
 **Panel del dueño:** API en `localhost:8000/api/v1/plataforma/` (NO 127.0.0.1).
+
+### Logo del colegio
+El campo `Cliente.logo` (ya existía en el modelo) se sube desde el panel del dueño y se ve en el selector de la app de apoderados. Sin logo se muestra un marcador con las iniciales.
+- **Subir/cambiar:** `POST /api/v1/plataforma/colegios/<id>/logo/` (multipart, campo `logo`). PNG/JPG/WEBP, máx. 2 MB — validado en cliente y servidor. Al reemplazar se borra el archivo anterior del disco.
+- **Quitar:** `POST /api/v1/plataforma/colegios/<id>/quitar-logo/`. Es POST y no DELETE porque `http_method_names` del `ColegioViewSet` excluye DELETE (para que nadie tire el schema de un colegio por accidente).
+- El alta de colegio sigue siendo JSON: el logo se sube en una 2ª llamada. Si esa falla, el colegio **igual queda creado** y el modal avisa para reintentar desde la tabla.
+- `colegios-publicos` y `ColegioSerializer` devuelven la URL **absoluta** (`request.build_absolute_uri`) — la app móvil y el panel no comparten origen con el backend.
+- Archivos en `backend/media/logos/`; en prod los sirve nginx (`location /media/`), en dev el urlconf público.
 
 ## Estado actual — todo construido ✅
 - **Escáner** — escaneo DNI, apertura automática de sesión, anti-fraude

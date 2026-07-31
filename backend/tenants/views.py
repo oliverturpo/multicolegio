@@ -5,6 +5,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import (
     action, api_view, authentication_classes, permission_classes,
 )
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -13,6 +14,7 @@ from .models import Cliente, Dominio
 from .permissions import EsDuenoPlataforma
 from .serializers import (
     PlataformaTokenSerializer, ColegioSerializer, CrearColegioSerializer,
+    LogoColegioSerializer, url_logo,
 )
 
 
@@ -34,6 +36,7 @@ def colegios_publicos(request):
                 'nombre':  c.nombre,
                 'schema':  c.schema_name,
                 'dominio': dom.domain,
+                'logo':    url_logo(c, request),
             })
     return Response(data)
 
@@ -98,7 +101,7 @@ class ColegioViewSet(viewsets.ModelViewSet):
 
         return Response(
             {
-                'colegio': ColegioSerializer(cliente).data,
+                'colegio': ColegioSerializer(cliente, context={'request': request}).data,
                 'acceso': {
                     'url': settings.TENANT_LOGIN_URL_TEMPLATE.format(sub=d['subdominio']),
                     'usuario': 'director',
@@ -114,7 +117,7 @@ class ColegioViewSet(viewsets.ModelViewSet):
         cliente = self.get_object()
         cliente.activo = not cliente.activo
         cliente.save(update_fields=['activo'])
-        return Response(ColegioSerializer(cliente).data)
+        return Response(self.get_serializer(cliente).data)
 
     @action(detail=True, methods=['post'], url_path='toggle-whatsapp')
     def toggle_whatsapp(self, request, pk=None):
@@ -122,4 +125,37 @@ class ColegioViewSet(viewsets.ModelViewSet):
         cliente = self.get_object()
         cliente.whatsapp_activo = not cliente.whatsapp_activo
         cliente.save(update_fields=['whatsapp_activo'])
-        return Response(ColegioSerializer(cliente).data)
+        return Response(self.get_serializer(cliente).data)
+
+    @action(detail=True, methods=['post'], url_path='logo',
+            parser_classes=[MultiPartParser, FormParser])
+    def logo(self, request, pk=None):
+        """
+        Sube el logo del colegio (multipart, campo `logo`). Se muestra en el
+        selector de la app de apoderados y en este panel.
+        """
+        cliente = self.get_object()
+        anterior = cliente.logo.name or None
+
+        ser = LogoColegioSerializer(cliente, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+
+        # Al reemplazar, Django guarda el archivo nuevo con otro nombre y deja
+        # el viejo huérfano en disco: lo borramos a mano.
+        if anterior and anterior != cliente.logo.name:
+            cliente.logo.storage.delete(anterior)
+
+        return Response(self.get_serializer(cliente).data)
+
+    @action(detail=True, methods=['post'], url_path='quitar-logo')
+    def quitar_logo(self, request, pk=None):
+        """
+        Quita el logo del colegio (vuelve al marcador con iniciales).
+        Es POST y no DELETE porque `http_method_names` del ViewSet excluye
+        DELETE para que nadie pueda borrar un colegio por accidente.
+        """
+        cliente = self.get_object()
+        if cliente.logo:
+            cliente.logo.delete(save=True)
+        return Response(self.get_serializer(cliente).data)
