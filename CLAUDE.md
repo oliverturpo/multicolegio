@@ -69,6 +69,7 @@ Servidor: **DigitalOcean** (`137.184.236.181`), Ubuntu 24.04, SFO3, plan $6/mes 
 | `yachayqr.com` | `public` | Panel del dueño. Superuser: `sicoa`. |
 | `demo.yachayqr.com` | `demo` | Colegio de prueba. Dataset real IESTA Tupac Amaru (233 alumnos). |
 | `mgcj.yachayqr.com` | `mgcj` | Colegio "Martin Chambi" (creado 2026-07-31). |
+| `xiii.yachayqr.com` | `xiii` | Colegio **"FINESI-8B"** — demo del curso con los 19 compañeros. `whatsapp_activo=True`. Ver sección abajo. |
 
 > `iestacoasa` ya **no existe** en la BD (se perdió al reconstruir el droplet). Los tenants reales en prod son los 3 de arriba.
 
@@ -232,8 +233,14 @@ El campo `Cliente.logo` (ya existía en el modelo) se sube desde el panel del du
   - **URL de eliminación de cuenta** (obligatoria por tener login): `https://yachayqr.com/eliminar-cuenta.html` (`frontend/public/eliminar-cuenta.html`, creada 2026-07-31, mismo estilo que privacidad).
   - Categoría → **Educación**. Contacto → correo/WhatsApp/web.
 
-### Producción (tienda abierta) — PENDIENTE, opcional para el curso
-Requiere **Prueba Cerrada** (pista aparte de la interna) con **≥12 testers reales** que acepten, corriendo **≥14 días**. La Prueba Interna NO cuenta para ese reloj. Los 14 días son **una sola vez**; las actualizaciones posteriores NO reesperan. Para el deadline del curso basta la Prueba Interna (ya lista) — Producción es el extra.
+### Prueba Cerrada (camino a Producción) — LANZADA + EN REVISIÓN ✅ (2026-07-31)
+Pista **"Prueba cerrada - Alpha"** creada y **enviada a revisión de Google** (14 cambios). Es la pista aparte que abre Producción; la Prueba Interna NO cuenta para su reloj.
+- **Versión en la pista:** `2 (1.0.0)` — build EAS `1f3de606-be12-44c2-825b-2052825f1f25`, **versionCode 2**. País: Perú. Estado: **EN REVISIÓN** (Google tarda horas–7 días; usa el apoderado de prueba `07821817`/`yachayqr2026`). Al aprobar, el nombre "(unreviewed)" pasa a "YachayQR Apoderados" (el link de tester YA lo muestra así).
+- ⚠️ **Bug resuelto — versionCode repetido:** al subir el `.aab` a la pista cerrada daba *"Ya se usó el código de la versión 1"*. Causa: `eas.json` no tenía `autoIncrement`, así que todo build reusaba versionCode 1. **Fix (commit `004f34b`): `"autoIncrement": true` en el perfil `production`.** Desde ahora cada build sube el versionCode solo. (Builds `67725f18` y `4ed29a92` = versionCode 1; `1f3de606` = versionCode 2, el bueno.)
+- **Requisito de los 14 días:** el reloj arranca cuando **12 testers ACEPTAN** el link (aceptar = abrir "Unirse desde la Web" logueado con su Gmail y darle "Convertirme en probador"; NO requiere instalar ni tener celular — se hace desde navegador). Los 14 días son **una sola vez**; las actualizaciones posteriores NO reesperan.
+- **Lista de testers "Testers Cerrada YachayQR - nixma" (13 correos, 1 de colchón sobre los 12):**
+  `alex20cuevas25@gmail.com`, `cliver20oliver23@gmail.com`, `cliveroliverturpobenique@gmail.com`, `darioaroni864@gmail.com`, `lewisvilca96@gmail.com`, `lilagutierrez390@gmail.com`, `martinabenique@gmail.com`, `nixmayasminaronimamani@gmail.com`, `oliverbenique@gmail.com`, `pepeinambari@gmail.com`, `pumaarmando25@gmail.com`, `selvamaka0@gmail.com`, `susan.vane.juntas@gmail.com`.
+- **DÓNDE QUEDAMOS (paso actual):** app **enviada a revisión** + Prueba Cerrada lanzada. `cliver20oliver23@gmail.com` ya aceptó el link ("Eres un probador"). **Falta que los otros 11–12 correos acepten** el link de "Unirse desde la Web" para arrancar los 14 días. Para el curso NO hace falta esperar eso — la Prueba Interna ya es el entregable.
 
 ### Textos de la ficha (usados)
 - Nombre: **YachayQR Apoderados**
@@ -241,9 +248,22 @@ Requiere **Prueba Cerrada** (pista aparte de la interna) con **≥12 testers rea
 - Descripción completa: *YachayQR Apoderados te permite consultar de forma rápida y segura el registro de asistencia de tus hijos en su institución educativa. Inicia sesión con tu DNI y revisa si tu hijo llegó puntual, tarde o estuvo ausente, con el historial completo de sus asistencias. Una herramienta simple y directa para mantenerte informado sobre la asistencia escolar de tu familia.*
 
 ### PRÓXIMOS PASOS (al retomar)
-1. **Decisión pendiente:** arrancar o no la **Prueba Cerrada** (12 testers, 14 días) para abrir Producción. No urge para el curso.
-2. Cuando Google revise la app, el nombre "(unreviewed)" cambia a "YachayQR Apoderados". Recién ahí liberar la clave del apoderado de prueba `07821817`.
-3. (Pendiente aparte) cablear login de personal (director/auxiliar) en la app; Meta/WhatsApp OTP para "olvidé contraseña" cuando se pague billing.
+1. **Perseguir los 12 testers:** que los 13 correos de la lista abran el link de "Unirse desde la Web" de la Prueba Cerrada y acepten. Con 12 aceptados arrancan los 14 días. Revisar en Play Console → Prueba cerrada → cuántos aceptaron.
+2. **Esperar la revisión de Google** de la versión `2 (1.0.0)` (Prueba Cerrada). No hay nada que hacer de nuestro lado; solo no romper el apoderado de prueba `07821817`/`yachayqr2026` en demo.
+3. Pasados los 14 días con 12 testers + app aprobada → **solicitar acceso a Producción** (tienda pública abierta).
+4. NO reimportar el dataset demo ni cambiar la clave de `07821817` hasta que Google termine de revisar.
+5. (Pendiente aparte) cablear login de personal (director/auxiliar) en la app; Meta/WhatsApp OTP para "olvidé contraseña" cuando se pague billing.
+
+## Colegio de demo del curso — FINESI-8B (schema `xiii`) · 2026-08-03
+
+Colegio creado para la presentación de ISW2. Los "alumnos" son los **19 compañeros reales** del grupo; cada persona está cargada **dos veces**: como `Alumno` (para escanear) y como su propio `Apoderado` (para recibir el WhatsApp). El mensaje siempre sale al `Apoderado.telefono_whatsapp`, nunca al alumno.
+
+- **DNI = los primeros 8 dígitos de su propio celular** (ej. `963366849` → DNI `96336684`). Mismo DNI para el alumno y el apoderado — son tablas distintas, el `unique` no choca. Se eligió así para que cada uno entre solo a la app móvil sin repartir credenciales: usuario = DNI, clave inicial = el mismo DNI.
+- Grado único: `5° "8B" — SECUNDARIA 2026`. Usuario `director` (el resto de roles no se creó).
+- Datos cargados con un script al ORM en el servidor (no por la UI: eran ~250 campos a mano). Idempotente por DNI vía `update_or_create` — se puede recorrer otra vez sin duplicar.
+- ⚠️ **`HorarioEscolar "Turno Mañana"` (07:30 / 08:00 / 09:00, L-V) está `activo=False` a propósito.** Con `whatsapp_activo=True` en el colegio, activarlo hace que Celery Beat cierre la sesión y dispare WhatsApp **reales a los 19 números**. Encenderlo solo al momento de la demo.
+- Secuencia para la demo en vivo: activar horario → abrir sesión en el escáner → escanear a algunos (quedan Presente/Tardanza) → cerrar sesión → a los no escaneados les llega el "no asistió".
+- Envíos de prueba verificados el 2026-08-03 a dos números del colegio (`51963366849` y `51910306939`): ambos `delivered`. El que abre el mensaje pasa a `read` — útil para mostrar los estados en vivo.
 
 ## Horario escolar (demo)
 | Campo | Valor | Significado |
@@ -291,9 +311,13 @@ El widget de Turnstile protege los logins (`frontend/src/pages/Login.jsx` y `pag
 - **Backend:** `TURNSTILE_SECRET=<secret>` en `/var/www/yachayqr/backend/.env`. `config/turnstile.py` valida contra Cloudflare (falla cerrado). Si el secret está vacío (dev) se omite.
 - ⚠️ **Hostnames del widget:** en Cloudflare el widget debe incluir `yachayqr.com` (cubre subdominios `demo.`, `iestacoasa.`). Confirmar si se agrega un colegio nuevo.
 
-## Integración WhatsApp / Meta — LISTA pero BLOQUEADA POR PAGO ⚠️ (2026-07-29)
+## Integración WhatsApp / Meta — FUNCIONANDO ✅ (2026-08-03)
 
-El código (`config/whatsapp.py`) envía plantillas vía **Meta Cloud API**. Todo está cableado y probado; **lo único que falla es el pago de la tarjeta** (ver abajo). El código es correcto — el día que una tarjeta pase el cargo, entrega solo.
+El código (`config/whatsapp.py`) envía plantillas vía **Meta Cloud API** y **entrega de verdad**. Verificado end-to-end el 2026-08-03: `enviar_template()` desde el shell de Django en prod → webhook confirma `sent` → `delivered` → `read`.
+
+El bloqueo histórico era **solo el pago de la tarjeta**. Al regularizarlo, la WABA pasó de `RESTRICTED` a `ACTIVE` / `account_review_status: APPROVED` y los mensajes empezaron a entregar sin tocar una línea de código.
+- `business_verification_status: rejected` **NO impide entregar** — se descartó como causa en la prueba del 2026-08-03. Solo limita escalar volumen.
+- El aviso del panel de Meta *"las apps no publicadas no reciben datos de producción"* aplica a otros productos; con la app en **modo Desarrollo** la Cloud API entrega igual desde el número real. No hace falta publicar la app ni ser "proveedor de tecnología" (eso es para el modelo BSP, administrar WABAs de terceros).
 
 **Credenciales (todas en `/var/www/yachayqr/backend/.env`, NO en git):**
 - `WHATSAPP_PHONE_ID=1116476101550897` — número business **+51 927 609 290** ("YachayQr", CONNECTED, calidad GREEN, CLOUD_API, TIER_250).
@@ -307,16 +331,26 @@ El código (`config/whatsapp.py`) envía plantillas vía **Meta Cloud API**. Tod
 - `yachayqr_tardanza` → "{{1}} llegó tarde a clases hoy {{2}}. Hora: {{3}}."
 - (`hello_world` también, pero solo funciona desde números de PRUEBA, no desde el real.)
 
-**Webhook:** endpoint `POST/GET /api/v1/whatsapp/webhook/` (`asistencia/webhook_views.py`) — loggea estados de entrega (`[WA-STATUS]`) vía `logger('whatsapp.webhook')`, leíbles con `journalctl -u yachayqr`. El handshake GET valida con `WHATSAPP_VERIFY_TOKEN`. **Falta suscribirlo en Meta** (WhatsApp → Configuración → Webhook → Callback `https://yachayqr.com/api/v1/whatsapp/webhook/` + token, suscribir campo `messages`) — opcional, solo para ver estados en vivo.
+**Webhook: SUSCRITO ✅ (2026-08-03).** Endpoint `POST/GET /api/v1/whatsapp/webhook/` (`asistencia/webhook_views.py`) — loggea estados de entrega (`[WA-STATUS]`) vía `logger('whatsapp.webhook')`. Ver en vivo:
+```bash
+ssh root@137.184.236.181 'timeout 40 journalctl -u yachayqr -f -n 0 | grep -a WA-STATUS'
+```
+Configuración hecha en dos partes (ambas necesarias):
+1. **App Dashboard** → Webhooks → objeto **WhatsApp Business Account** (¡no "User"!) → Callback `https://yachayqr.com/api/v1/whatsapp/webhook/` + `WHATSAPP_VERIFY_TOKEN` → suscribir campo `messages`.
+2. **Suscribir la app a la WABA** (esto va por API, no está en la UI):
+   `curl -X POST "https://graph.facebook.com/v19.0/3628620677275857/subscribed_apps" -H "Authorization: Bearer $TOKEN"`
+   Verificar con el mismo endpoint en GET — si `data` viene vacío, no llega ningún estado.
 
-**⛔ EL BLOQUEO (por qué no entrega):**
-- La cuenta está **RESTRINGIDA**: Meta no pudo hacer la **retención temporal** (authorization hold) en la tarjeta → sin fondos suficientes / tarjeta rechazada. Mensaje de Meta: *"Cuenta de WhatsApp Business restringida — No hemos podido procesar tu pago."*
-- Al enviar, Meta responde `messages[0].message_status: accepted` pero **NO entrega** (queda encolado) mientras la cuenta esté restringida.
-- Tarjetas registradas: Visa ···9991 (default, falló el hold), Visa ···3134. Interbank da "La tarjeta no se puede utilizar" → falta activar **compras internacionales/recurrentes** en la app del banco, o usar tarjeta de crédito.
-- Saldo real: solo **0,41 S/** (céntimos). El problema NO es el monto, es que la tarjeta no pasa el hold de verificación.
-- `business_verification_status: rejected` (afecta escalar a producción; no bloquea el primer envío — el bloqueo es el pago).
+**Diagnóstico rápido si deja de entregar:**
+```bash
+# WABA: debe decir status=ACTIVE y account_review_status=APPROVED
+curl -s "https://graph.facebook.com/v19.0/3628620677275857?fields=status,account_review_status,business_verification_status" -H "Authorization: Bearer $TOKEN"
+# Token: expires_at=0 significa permanente
+curl -s "https://graph.facebook.com/v19.0/debug_token?input_token=$TOKEN&access_token=$TOKEN"
+```
+Si Meta responde `accepted` pero el webhook nunca manda `delivered`, el sospechoso #1 es el **pago** (WABA en `RESTRICTED`). Los endpoints de billing/`extendedcredits` devuelven error 10 con nuestro token — no somos BSP, hay que mirarlo en el Billing Hub de la UI.
 
-**Cómo probar un envío manual (cuando el pago esté al día):**
+**Cómo probar un envío manual:**
 ```bash
 ssh root@137.184.236.181 'cd /var/www/yachayqr/backend
 TOKEN=$(grep ^WHATSAPP_TOKEN= .env | cut -d= -f2)
@@ -326,7 +360,16 @@ curl -s -X POST "https://graph.facebook.com/v19.0/1116476101550897/messages" \
 ```
 Número de prueba del apoderado: **51963366849** (formato Meta = código país sin `+`).
 
-**Pendiente WhatsApp (cuando haya pago):**
+**Prueba end-to-end desde el código real:**
+```bash
+ssh root@137.184.236.181 'cd /var/www/yachayqr/backend && source venv/bin/activate && python manage.py shell -c "
+from config.whatsapp import enviar_template
+print(enviar_template(\"963366849\", \"yachayqr_ausente\", [\"Nombre Alumno\", \"03/08/2026\", \"la I.E.\"]))
+"'
+```
+
+**Pendiente WhatsApp:**
+- `whatsapp_activo`: solo **`xiii` (FINESI-8B)** en True. `public`, `demo` y `mgcj` en False — el cierre automático no les envía nada. ⚠️ No activar `demo`: son apoderados **reales** del IESTA Tupac Amaru.
 - **OTP "olvidé contraseña"** (app apoderados): falta crear **1 plantilla de categoría AUTENTICACIÓN** en Meta + cablear el flujo (generar código → enviar → verificar). El token actual ya sirve para eso.
 - Seguridad: token WhatsApp y Secret de Turnstile son secretos — solo en `.env` del servidor, nunca a git.
 
@@ -334,7 +377,7 @@ Número de prueba del apoderado: **51963366849** (formato Meta = código país s
 - [x] **Celery Beat en servidor**: `.service` creado y habilitado en el droplet nuevo (2026-07-28).
 - [ ] **Fotos de alumnos (demo)**: no estaban en el backup reimportado — recargar si se necesitan.
 - [ ] **Colegio `iestacoasa`**: se perdió al reconstruir; recrear si hace falta.
-- [x] **WhatsApp API**: token permanente + phone_id ya en `.env` de prod (2026-07-29). Plantillas aprobadas. **BLOQUEADO por pago** — ver sección "Integración WhatsApp / Meta" abajo.
+- [x] **WhatsApp API**: token permanente + phone_id en `.env` de prod, plantillas aprobadas, webhook suscrito. **ENTREGANDO ✅ (2026-08-03)** tras regularizar el pago — ver sección "Integración WhatsApp / Meta" abajo.
 - [x] **Turnstile en prod**: Site Key + Secret Key reales configurados y desplegados (2026-07-29). Ver sección "Cloudflare Turnstile" abajo.
 - [x] Carnet PDF: `colegios/carnet.py` (foto + barcode + QR, 4 por hoja). Falta logo del colegio.
 
